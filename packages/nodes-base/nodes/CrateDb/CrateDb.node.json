@@ -1,0 +1,25 @@
+{
+	"node": "pong-nodes-base.crateDb",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Development", "Data & Storage"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"generic": [
+			{
+				"label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide",
+				"icon": "🏭",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	}
+}

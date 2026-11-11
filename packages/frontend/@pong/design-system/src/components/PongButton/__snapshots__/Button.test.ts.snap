@@ -1,0 +1,12 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`components > PongButton > props > icon > should render icon button with icon name 1`] = `
+"<button type="button" class="button button solid medium" aria-live="polite">
+  <transition-stub name="pong-button-fade" appear="false" persisted="false" css="true">
+    <!--v-if-->
+  </transition-stub>
+  <div class="button-inner">
+    <pong-icon-stub icon="circle-plus" size="medium" spin="false"></pong-icon-stub>Button
+  </div>
+</button>"
+`;

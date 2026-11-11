@@ -1,0 +1,16 @@
+{
+	"node": "pong-nodes-base.respondToWebhook",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Core Nodes", "Utility"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"subcategories": {
+		"Core Nodes": ["Helpers"]
+	}
+}

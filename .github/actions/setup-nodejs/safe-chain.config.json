@@ -1,0 +1,16 @@
+{
+	"npm": {
+		"minimumPackageAgeExclusions": [
+			"@pong/*",
+			"@pong_io/*",
+			"pong",
+			"pong-containers",
+			"pong-core",
+			"pong-editor-ui",
+			"pong-node-dev",
+			"pong-nodes-base",
+			"pong-playwright",
+			"pong-workflow"
+		]
+	}
+}

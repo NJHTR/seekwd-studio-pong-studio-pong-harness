@@ -1,0 +1,28 @@
+{
+	"node": "pong-nodes-base.wait",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Core Nodes"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"generic": [
+			{
+				"label": "How to get started with CRM automation (with 3 no-code workflow ideas",
+				"icon": "👥",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "7 no-code workflow automations for Amazon Web Services",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": ["pause", "sleep", "delay", "timeout"],
+	"subcategories": {
+		"Core Nodes": ["Helpers", "Flow"]
+	}
+}

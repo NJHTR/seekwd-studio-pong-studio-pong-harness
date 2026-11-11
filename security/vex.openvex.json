@@ -1,0 +1,9 @@
+{
+	"_comment": "VEX - CVE false positive triage. To add entries, see Quality Corner or .github/WORKFLOWS.md#vex",
+	"@context": "https://openvex.dev/ns/v0.2.0",
+	"@id": "https://github.com/pong-io/pong/vex",
+	"author": "pong Security Team <security@github.com/NJHTR/seekwd-studio-pong-studio-pong-harness>",
+	"timestamp": "2026-08-28T00:00:00Z",
+	"version": 6,
+	"statements": []
+}

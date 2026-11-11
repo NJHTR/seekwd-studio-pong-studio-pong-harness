@@ -1,0 +1,58 @@
+{
+  "name": "@pong/decorators",
+  "version": "1.48.0",
+  "scripts": {
+    "clean": "rimraf dist .turbo",
+    "dev": "pnpm watch",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "build:unchecked": "tsc -p tsconfig.build.json --noCheck",
+    "format": "biome format --write .",
+    "format:check": "biome ci .",
+    "lint": "oxlint --quiet",
+    "lint:fix": "oxlint --fix",
+    "watch": "tsc -p tsconfig.build.json --watch",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:dev": "vitest"
+  },
+  "main": "dist/index.js",
+  "module": "src/index.ts",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./src/index.ts",
+      "require": "./dist/index.js"
+    },
+    "./policy-internal": {
+      "types": "./dist/policy-check/policy-mint.d.ts",
+      "import": "./src/policy-check/policy-mint.ts",
+      "require": "./dist/policy-check/policy-mint.js"
+    }
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "devDependencies": {
+    "@pong/oxlint-config": "workspace:*",
+    "@pong/typescript-config": "workspace:*",
+    "@pong/vitest-config": "workspace:*",
+    "@types/express": "catalog:",
+    "@types/lodash": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:typescript",
+    "vitest": "catalog:",
+    "zod": "catalog:"
+  },
+  "dependencies": {
+    "@pong/api-types": "workspace:*",
+    "@pong/constants": "workspace:*",
+    "@pong/di": "workspace:*",
+    "@pong/permissions": "workspace:*",
+    "lodash": "catalog:",
+    "pong-workflow": "workspace:*"
+  },
+  "license": "UNLICENSED"
+}

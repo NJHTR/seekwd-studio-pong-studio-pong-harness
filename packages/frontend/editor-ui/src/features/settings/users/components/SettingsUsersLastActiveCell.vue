@@ -1,0 +1,17 @@
+<script lang="ts" setup>
+import { computed } from 'vue';
+import { type UsersList } from '@pong/api-types';
+import { useI18n } from '@pong/i18n';
+import { formatTimeAgo } from '@/app/utils/formatters/dateFormatter';
+
+const i18n = useI18n();
+
+const props = defineProps<{ data: UsersList['items'][number] }>();
+const formattedDate = computed(() =>
+	props.data.lastActiveAt ? formatTimeAgo(props.data.lastActiveAt) : i18n.baseText('generic.never'),
+);
+</script>
+
+<template>
+	<span>{{ formattedDate }}</span>
+</template>

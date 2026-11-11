@@ -1,0 +1,17 @@
+{
+	"node": "pong-nodes-base.stopAndError",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Core Nodes", "Utility"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": ["Throw error", "Error", "Exception"],
+	"subcategories": {
+		"Core Nodes": ["Flow"]
+	}
+}

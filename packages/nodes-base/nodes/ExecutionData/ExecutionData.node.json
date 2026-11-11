@@ -1,0 +1,17 @@
+{
+	"node": "pong-nodes-base.executionData",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Development", "Core Nodes"],
+	"subcategories": {
+		"Core Nodes": ["Helpers"]
+	},
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": ["Filter", "_Set", "Data"]
+}

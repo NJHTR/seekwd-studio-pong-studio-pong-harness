@@ -1,0 +1,19 @@
+{
+	"node": "pong-nodes-base.sort",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"details": "",
+	"categories": ["Core Nodes"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"generic": []
+	},
+	"alias": ["Sort", "Order", "Transform", "Array", "List", "Item", "Random"],
+	"subcategories": {
+		"Core Nodes": ["Data Transformation"]
+	}
+}

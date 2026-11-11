@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`PongLink > should render external links 1`] = `"<a href="https://example.com/" target="_blank" class="pong-link"><span class="primary-underline"><span class="pong-text size-medium regular">External Link</span></span></a>"`;
+
+exports[`PongLink > should render internal router links 1`] = `"<router-link-stub to="/test" replace="false" custom="false" ariacurrentvalue="page" role="link" class="pong-link"></router-link-stub>"`;
+
+exports[`PongLink > should render with bold text 1`] = `"<router-link-stub to="/test" replace="false" custom="false" ariacurrentvalue="page" role="link" class="pong-link"></router-link-stub>"`;
+
+exports[`PongLink > should render with different themes 1`] = `"<router-link-stub to="/test" replace="false" custom="false" ariacurrentvalue="page" role="link" class="pong-link"></router-link-stub>"`;
+
+exports[`PongLink > should render with underline 1`] = `"<router-link-stub to="/test" replace="false" custom="false" ariacurrentvalue="page" role="link" class="pong-link"></router-link-stub>"`;

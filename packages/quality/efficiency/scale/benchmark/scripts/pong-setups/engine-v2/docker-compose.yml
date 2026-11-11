@@ -1,0 +1,184 @@
+services:
+  mockapi:
+    image: wiremock/wiremock:3.9.1
+    ports:
+      - '8088:8080'
+    volumes:
+      - ${MOCK_API_DATA_PATH}/mappings:/home/wiremock/mappings
+
+  # The data plane sends execution responses to the main over Redis
+  redis:
+    image: redis:6.2.14-alpine
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 1s
+      timeout: 3s
+
+  postgres:
+    image: postgres:18.4
+    user: root:root
+    restart: always
+    environment:
+      - POSTGRES_DB=pong
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - ${RUN_DIR}/postgres:/var/lib/postgresql/data
+      # Creates the separate engine v2 database on the first start
+      - ./init-engine-db.sql:/docker-entrypoint-initdb.d/init-engine-db.sql:ro
+    healthcheck:
+      # Check over TCP. On the first start, a socket-only temporary server runs the
+      # init script, so a socket check would pass before pong_engine exists
+      test: ['CMD-SHELL', 'pg_isready -U postgres -h 127.0.0.1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # The engine v2 data plane. It must not get the control plane DB config (DB_*)
+  # or the encryption key, and it does not run task runners.
+  pong_engine1:
+    image: ghcr.io/pong-io/pong:${PONG_VERSION:-latest}
+    user: root:root
+    environment:
+      - PONG_DIAGNOSTICS_ENABLED=false
+      - PONG_USER_FOLDER=/pong/engine1
+      # For binary data test to work
+      - PONG_RESTRICT_FILE_ACCESS_TO=''
+      - PONG_BLOCK_FILE_ACCESS_TO_PONG_FILES=false
+      # The main and the engines share one binary data store
+      - PONG_STORAGE_PATH=/pong-storage
+      - QUEUE_BULL_REDIS_HOST=redis
+      # Engine config
+      - PONG_ENGINE_DATABASE_URL=postgres://postgres:password@postgres:5432/pong_engine
+      - PONG_ENGINE_AUTH_SECRET=benchmark-engine-v2-shared-auth-secret
+      # Plain HTTP between the planes: this setup has no TLS certificates
+      - PONG_ENGINE_TLS_INSECURE_ALLOW_PLAIN_HTTP=true
+      - PONG_ENGINE_HOST=0.0.0.0
+      - PONG_ENGINE_PORT=3000
+      - PONG_ENGINE_CONTROL_PLANE_BASE_URL=http://pong:3001
+    command: engine
+    volumes:
+      - ${RUN_DIR}/pong-engine1:/pong
+      - ${RUN_DIR}/storage:/pong-storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --spider -q http://pong_engine1:3000/healthz || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pong_engine2:
+    image: ghcr.io/pong-io/pong:${PONG_VERSION:-latest}
+    user: root:root
+    environment:
+      - PONG_DIAGNOSTICS_ENABLED=false
+      - PONG_USER_FOLDER=/pong/engine2
+      # For binary data test to work
+      - PONG_RESTRICT_FILE_ACCESS_TO=''
+      - PONG_BLOCK_FILE_ACCESS_TO_PONG_FILES=false
+      # The main and the engines share one binary data store
+      - PONG_STORAGE_PATH=/pong-storage
+      - QUEUE_BULL_REDIS_HOST=redis
+      # Engine config
+      - PONG_ENGINE_DATABASE_URL=postgres://postgres:password@postgres:5432/pong_engine
+      - PONG_ENGINE_AUTH_SECRET=benchmark-engine-v2-shared-auth-secret
+      # Plain HTTP between the planes: this setup has no TLS certificates
+      - PONG_ENGINE_TLS_INSECURE_ALLOW_PLAIN_HTTP=true
+      - PONG_ENGINE_HOST=0.0.0.0
+      - PONG_ENGINE_PORT=3000
+      - PONG_ENGINE_CONTROL_PLANE_BASE_URL=http://pong:3001
+    command: engine
+    volumes:
+      - ${RUN_DIR}/pong-engine2:/pong
+      - ${RUN_DIR}/storage:/pong-storage
+    depends_on:
+      # We let the engine 1 start first so it can run the engine DB migrations
+      pong_engine1:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --spider -q http://pong_engine2:3000/healthz || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Spreads the executions of the main across both engines
+  pong_engine_lb:
+    image: nginx:1.27.2
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      pong_engine1:
+        condition: service_healthy
+      pong_engine2:
+        condition: service_healthy
+
+  # The control plane.
+  pong:
+    image: ghcr.io/pong-io/pong:${PONG_VERSION:-latest}
+    user: root:root
+    environment:
+      - PONG_DIAGNOSTICS_ENABLED=false
+      - PONG_USER_FOLDER=/pong/main
+      - PONG_ENCRYPTION_KEY=${PONG_ENCRYPTION_KEY}
+      # The main and the engines share one binary data store
+      - PONG_STORAGE_PATH=/pong-storage
+      - QUEUE_BULL_REDIS_HOST=redis
+      # DB config
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PASSWORD=password
+      - PONG_METRICS=true
+      # Engine config
+      - PONG_ENABLED_MODULES=engine-v2
+      - PONG_ENGINE_MODE=remote
+      - PONG_ENGINE_BASE_URL=http://pong_engine_lb:3000
+      - PONG_ENGINE_AUTH_SECRET=benchmark-engine-v2-shared-auth-secret
+      # Plain HTTP between the planes: this setup has no TLS certificates
+      - PONG_ENGINE_TLS_INSECURE_ALLOW_PLAIN_HTTP=true
+      - PONG_ENGINE_CONTROL_PLANE_HOST=0.0.0.0
+      - PONG_ENGINE_CONTROL_PLANE_PORT=3001
+    ports:
+      - 5678:5678
+    volumes:
+      - ${RUN_DIR}/pong-main:/pong
+      - ${RUN_DIR}/storage:/pong-storage
+    depends_on:
+      pong_engine_lb:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mockapi:
+        condition: service_started
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --spider -q http://pong:5678/healthz || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  benchmark:
+    image: ghcr.io/pong-io/pong-benchmark:${PONG_BENCHMARK_VERSION:-latest}
+    depends_on:
+      pong:
+        condition: service_healthy
+    environment:
+      - PONG_BASE_URL=http://pong:5678
+      - K6_API_TOKEN=${K6_API_TOKEN}
+      - BENCHMARK_RESULT_WEBHOOK_URL=${BENCHMARK_RESULT_WEBHOOK_URL}
+      - BENCHMARK_RESULT_WEBHOOK_AUTH_HEADER=${BENCHMARK_RESULT_WEBHOOK_AUTH_HEADER}
+      - COLLECT_APP_METRICS=true
+      # Every imported workflow runs on engine v2. Scenarios without v2 in
+      # their supportedEngines are skipped
+      - BENCHMARK_ENGINE_TYPE=v2

@@ -1,0 +1,27 @@
+{
+  "name": "@pong/module-cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Interactive scaffolder for pong modules",
+  "type": "module",
+  "bin": {
+    "pong-module-sdk": "bin/pong-module-sdk.mjs"
+  },
+  "scripts": {
+    "clean": "rimraf .turbo",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:dev": "vitest",
+    "format": "biome format --write .",
+    "format:check": "biome ci ."
+  },
+  "dependencies": {
+    "citty": "catalog:",
+    "consola": "catalog:"
+  },
+  "devDependencies": {
+    "@pong/vitest-config": "workspace:*",
+    "vitest": "catalog:"
+  },
+  "license": "UNLICENSED"
+}

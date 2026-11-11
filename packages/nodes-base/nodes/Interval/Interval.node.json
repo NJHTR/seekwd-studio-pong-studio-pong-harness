@@ -1,0 +1,29 @@
+{
+	"node": "pong-nodes-base.interval",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Core Nodes"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"generic": [
+			{
+				"label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide",
+				"icon": "🏭",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Creating triggers for pong workflows using polling",
+				"icon": "⏲",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": ["Time", "Scheduler", "Polling"],
+	"subcategories": {
+		"Core Nodes": ["Flow", "Other Trigger Nodes"]
+	}
+}

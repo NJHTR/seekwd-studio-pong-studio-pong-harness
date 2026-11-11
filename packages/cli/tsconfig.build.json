@@ -1,0 +1,14 @@
+{
+	"extends": ["./tsconfig.json", "@pong/typescript-config/tsconfig.build.go.json"],
+	"compilerOptions": {
+		"rootDir": "src",
+		"outDir": "dist",
+		"paths": {
+			"@/*": ["./src/*"],
+			"@test/*": ["./test/shared/*"],
+			"@test-integration/*": ["./test/integration/shared/*"]
+		}
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": ["test/**", "src/**/__tests__/**", "src/modules/skills/testing/**"]
+}

@@ -1,0 +1,13 @@
+{
+	"extends": [
+		"@pong/typescript-config/tsconfig.common.go.json",
+		"@pong/typescript-config/tsconfig.backend.go.json"
+	],
+	"compilerOptions": {
+		"paths": {
+			"@/*": ["./src/*"]
+		},
+		"types": ["node"]
+	},
+	"include": ["src/**/*.ts"]
+}

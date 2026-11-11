@@ -1,0 +1,15 @@
+{
+	"extends": [
+		"@pong/typescript-config/tsconfig.common.go.json",
+		"@pong/typescript-config/tsconfig.backend.go.json"
+	],
+	"compilerOptions": {
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"types": ["node", "vitest/globals", "vite/client"],
+		"paths": {
+			"@/*": ["./src/*"]
+		}
+	},
+	"include": ["src/**/*.ts"]
+}

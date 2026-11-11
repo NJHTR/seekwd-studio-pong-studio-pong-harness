@@ -1,0 +1,44 @@
+{
+	"permissions": {
+		"allow": [
+			"Bash(git log:*)",
+			"Bash(git show:*)",
+			"Bash(grep:*)",
+			"Bash(ls:*)",
+			"Bash(pnpm build)",
+			"Bash(pnpm lint:*)",
+			"Bash(pnpm test:*)",
+			"Bash(pnpm typecheck:*)",
+			"Bash(popd)",
+			"Bash(pushd:*)",
+			"Bash(mkdir -p .claude/plans)",
+			"Edit(.claude/plans/*)"
+		]
+	},
+	"hooks": {
+		"PostToolUse": [
+			{
+				"matcher": "Skill",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node .claude/plugins/pong/scripts/track-skill-usage.mjs",
+						"timeout": 10,
+						"async": true
+					}
+				]
+			}
+		]
+	},
+	"extraKnownMarketplaces": {
+		"pong": {
+			"source": {
+				"source": "directory",
+				"path": "./"
+			}
+		}
+	},
+	"enabledPlugins": {
+		"pong@pong": true
+	}
+}

@@ -1,0 +1,46 @@
+{
+  "name": "@pong/backend-test-utils",
+  "version": "1.48.0",
+  "scripts": {
+    "clean": "rimraf dist .turbo",
+    "dev": "pnpm watch",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "build:unchecked": "tsc -p tsconfig.build.json --noCheck",
+    "format": "biome format --write .",
+    "format:check": "biome ci .",
+    "lint": "oxlint --quiet",
+    "lint:fix": "oxlint --fix",
+    "watch": "tsc -p tsconfig.build.json --watch",
+    "test": "node -e \"process.exit(0)\"",
+    "test:dev": "echo \"WARNING: no test specified\" && exit 0"
+  },
+  "main": "dist/index.js",
+  "module": "src/index.ts",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "dependencies": {
+    "@pong/backend-common": "workspace:*",
+    "@pong/config": "workspace:*",
+    "@pong/constants": "workspace:*",
+    "@pong/db": "workspace:*",
+    "@pong/di": "workspace:*",
+    "@pong/permissions": "workspace:*",
+    "@pong/typeorm": "workspace:*",
+    "pong-workflow": "workspace:*",
+    "uuid": "catalog:",
+    "vitest": "catalog:",
+    "vitest-mock-extended": "catalog:"
+  },
+  "devDependencies": {
+    "@pong/eslint-config": "workspace:*",
+    "@pong/oxlint-config": "workspace:*",
+    "@pong/typescript-config": "workspace:*",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:typescript"
+  },
+  "license": "UNLICENSED"
+}

@@ -1,0 +1,30 @@
+import type { IBinaryData, IDataObject, IPongHttpResponse } from 'pong-workflow';
+import { BINARY_ENCODING } from 'pong-workflow';
+import type { Readable } from 'stream';
+
+const setContentLength = (responseBody: IPongHttpResponse | Readable, headers: IDataObject) => {
+	if (Buffer.isBuffer(responseBody)) {
+		headers['content-length'] = responseBody.length;
+	} else if (typeof responseBody === 'string') {
+		headers['content-length'] = Buffer.byteLength(responseBody, 'utf8');
+	}
+};
+
+/**
+ * Returns a response body for a binary data and sets the content-type header.
+ */
+export const getBinaryResponse = (binaryData: IBinaryData, headers: IDataObject) => {
+	let responseBody: IPongHttpResponse | Readable;
+
+	if (binaryData.id) {
+		responseBody = { binaryData };
+	} else {
+		const responseBuffer = Buffer.from(binaryData.data, BINARY_ENCODING);
+		responseBody = responseBuffer;
+		setContentLength(responseBody, headers);
+	}
+
+	headers['content-type'] ??= binaryData.mimeType;
+
+	return responseBody;
+};

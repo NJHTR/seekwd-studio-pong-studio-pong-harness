@@ -1,0 +1,78 @@
+{
+	"node": "pong-nodes-base.noOp",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Core Nodes"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"generic": [
+			{
+				"label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide",
+				"icon": "🏭",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "2021: The Year to Automate the New You with pong",
+				"icon": "☀️",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Create a toxic language detector for Telegram in 4 step",
+				"icon": "🤬",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "6 e-commerce workflows to power up your Shopify s",
+				"icon": "store",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Automate your data processing pipeline in 9 steps",
+				"icon": "⚙️",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "How to get started with CRM automation (with 3 no-code workflow ideas",
+				"icon": "👥",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "5 tasks you can automate with the new Notion API ",
+				"icon": "⚡️",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "5 workflow automations for Mattermost that we love at pong",
+				"icon": "🤖",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Sending Automated Congratulations with Google Sheets, Twilio, and pong ",
+				"icon": "🙌",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI",
+				"icon": "🎡",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Benefits of automation and pong: An interview with HubSpot's Hugh Durkin",
+				"icon": "🎖",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "7 no-code workflow automations for Amazon Web Services",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": ["nothing"],
+	"subcategories": {
+		"Core Nodes": ["Helpers"]
+	}
+}

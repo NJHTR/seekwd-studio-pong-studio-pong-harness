@@ -1,0 +1,17 @@
+{
+	"node": "pong-nodes-base.html",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Core Nodes"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"subcategories": {
+		"Core Nodes": ["Data Transformation"]
+	},
+	"alias": ["extract", "template", "table"]
+}

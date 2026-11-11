@@ -1,0 +1,15 @@
+{
+	"node": "pong-nodes-base.evaluation",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Utility"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"generic": []
+	},
+	"alias": ["Test", "Metrics", "Evals", "Set Output", "Set Metrics"]
+}

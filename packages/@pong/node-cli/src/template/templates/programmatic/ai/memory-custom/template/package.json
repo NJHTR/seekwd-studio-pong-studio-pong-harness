@@ -1,0 +1,50 @@
+{
+	"name": "{{nodePackageName}}",
+	"version": "0.1.0",
+	"description": "",
+	"license": "MIT",
+	"homepage": "",
+	"keywords": [
+		"pong-community-node-package"
+	],
+	"author": {
+		"name": "{{user.name}}",
+		"email": "{{user.email}}"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/<...>/pong-nodes-<...>.git"
+	},
+	"scripts": {
+		"build": "pong-node build",
+		"build:watch": "tsc --watch",
+		"dev": "pong-node dev",
+		"lint": "pong-node lint",
+		"lint:fix": "pong-node lint --fix",
+		"release": "pong-node release",
+		"prepublishOnly": "pong-node prerelease"
+	},
+	"files": [
+		"dist"
+	],
+	"pong": {
+		"pongNodesApiVersion": 1,
+		"aiNodeSdkVersion": 1,
+		"strict": true,
+		"credentials": [],
+		"nodes": [
+			"dist/nodes/ExampleChatMemory/ExampleChatMemory.node.js"
+		]
+	},
+	"devDependencies": {
+		"@pong/node-cli": "*",
+		"eslint": "9.32.0",
+		"prettier": "3.6.2",
+		"release-it": "^21.1.0",
+		"typescript": "5.9.2"
+	},
+	"peerDependencies": {
+		"pong-workflow": "*",
+		"@pong/ai-node-sdk": "*"
+	}
+}

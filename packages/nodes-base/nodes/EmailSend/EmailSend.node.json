@@ -1,0 +1,34 @@
+{
+	"node": "pong-nodes-base.emailSend",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Communication", "HITL", "Core Nodes"],
+	"subcategories": {
+		"HITL": ["Human in the Loop"]
+	},
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"generic": [
+			{
+				"label": "2021: The Year to Automate the New You with pong",
+				"icon": "☀️",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Build your own virtual assistant with pong: A step by step guide",
+				"icon": "👦",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": ["SMTP", "email", "human", "form", "wait", "hitl", "approval"]
+}

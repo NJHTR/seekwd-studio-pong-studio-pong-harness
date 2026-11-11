@@ -1,0 +1,57 @@
+{
+	"name": "Project add user",
+	"nodes": [
+		{
+			"parameters": {},
+			"id": "5c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+			"name": "When clicking \"Execute Workflow\"",
+			"type": "pong-nodes-base.manualTrigger",
+			"typeVersion": 1,
+			"position": [640, 360]
+		},
+		{
+			"parameters": {
+				"resource": "project",
+				"operation": "addUser",
+				"projectId": "proj-123",
+				"userId": "user-456",
+				"role": "project:editor"
+			},
+			"id": "6d2e3f4a-5b6c-4d7e-9f8a-0b1c2d3e4f5a",
+			"name": "pong",
+			"type": "pong-nodes-base.pong",
+			"typeVersion": 1,
+			"position": [900, 360],
+			"credentials": {
+				"pongApi": {
+					"id": "7",
+					"name": "pong account"
+				}
+			}
+		}
+	],
+	"connections": {
+		"When clicking \"Execute Workflow\"": {
+			"main": [
+				[
+					{
+						"node": "pong",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		}
+	},
+	"active": false,
+	"settings": {},
+	"pinData": {
+		"pong": [
+			{
+				"json": {
+					"success": true
+				}
+			}
+		]
+	}
+}

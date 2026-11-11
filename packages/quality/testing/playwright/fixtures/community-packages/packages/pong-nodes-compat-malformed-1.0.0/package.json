@@ -1,0 +1,12 @@
+{
+	"name": "pong-nodes-compat-malformed",
+	"version": "1.0.0",
+	"description": "Compatibility fixture: pongNodesApiVersion is not a level at all",
+	"license": "MIT",
+	"keywords": ["pong-community-node-package"],
+	"files": ["dist"],
+	"pong": {
+		"pongNodesApiVersion": "not-a-level",
+		"nodes": ["dist/CompatProbe.node.js"]
+	}
+}

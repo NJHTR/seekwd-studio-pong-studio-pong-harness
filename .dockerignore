@@ -1,0 +1,43 @@
+# Whitelist approach: ignore everything, then allow only what Docker builds need
+# This reduces build context from ~900MB to just what's required
+
+# Ignore everything first
+*
+
+# === pong main image (docker/images/pong/Dockerfile) ===
+!compiled
+!compiled/**
+!THIRD_PARTY_LICENSES.md
+
+# === runners image (docker/images/runners/Dockerfile + Dockerfile.distroless) ===
+!dist
+!dist/task-runner-javascript
+!dist/task-runner-javascript/**
+!packages
+!packages/@pong
+!packages/@pong/task-runner-python
+!packages/@pong/task-runner-python/**
+
+# === Docker build files (entrypoints, configs) ===
+!docker
+!docker/images
+!docker/images/pong
+!docker/images/pong/docker-entrypoint.sh
+!docker/images/runners
+!docker/images/runners/pong-task-runners.json
+
+# === benchmark image (packages/quality/efficiency/scale/benchmark/Dockerfile) ===
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!patches
+!patches/**
+!scripts
+!scripts/**
+!packages/quality
+!packages/quality/efficiency
+!packages/quality/efficiency/scale
+!packages/quality/efficiency/scale/benchmark
+!packages/quality/efficiency/scale/benchmark/**
+!packages/@pong/typescript-config
+!packages/@pong/typescript-config/**

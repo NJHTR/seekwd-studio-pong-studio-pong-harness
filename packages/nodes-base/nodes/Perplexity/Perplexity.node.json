@@ -1,0 +1,18 @@
+{
+	"node": "pong-nodes-base.perplexity",
+	"nodeVersion": "1.1",
+	"codexVersion": "1.0",
+	"categories": ["AI", "Utility"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	}
+}

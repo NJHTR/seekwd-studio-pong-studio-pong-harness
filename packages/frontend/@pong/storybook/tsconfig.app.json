@@ -1,0 +1,33 @@
+{
+	"extends": "@pong/typescript-config/tsconfig.frontend.json",
+	"compilerOptions": {
+		"tsBuildInfoFile": "./dist/tsconfig.app.tsbuildinfo",
+		"rootDirs": [".", "../composables/src"],
+		"noEmit": true,
+		"moduleResolution": "bundler",
+
+		"types": [
+			"vite/client",
+			"vitest/globals",
+			"unplugin-icons/types/vue",
+			"../design-system/src/shims-modules.d.ts"
+		],
+		"paths": {
+			"@pong/chat*": ["../chat/src*"],
+			"@pong/design-system": ["../design-system/src/index.ts"],
+			"@pong/design-system*": ["../design-system/src*"],
+			"@pong/composables*": ["../composables/src*"],
+			"@pong/i18n*": ["../i18n/src*"],
+			"@pong/stores*": ["../stores/src*"],
+			"@pong/utils*": ["../../../@pong/utils/src*"],
+			"@/*": ["../../editor-ui/src/*"]
+		}
+	},
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.tsx",
+		"src/**/*.vue",
+		".storybook/**/*.ts",
+		"../design-system/src/**/*.stories.ts"
+	]
+}

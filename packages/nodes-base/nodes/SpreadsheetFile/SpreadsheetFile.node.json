@@ -1,0 +1,24 @@
+{
+	"node": "pong-nodes-base.spreadsheetFile",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Data & Storage", "Core Nodes"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"generic": [
+			{
+				"label": "Build your own virtual assistant with pong: A step by step guide",
+				"icon": "👦",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": ["_Excel", "Excel", "CSV", "Sheet", "Spreadsheet", "xls", "xlsx", "ods"],
+	"subcategories": {
+		"Core Nodes": ["Files"]
+	}
+}

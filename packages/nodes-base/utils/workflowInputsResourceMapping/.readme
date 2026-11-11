@@ -1,0 +1,5 @@
+These files contain reusable logic for workflow inputs mapping used in these nodes:
+
+    - pong-nodes-base.executeWorkflow
+    - pong-nodes-base.executeWorkflowTrigger
+    - @pong/nodes-langchain.toolWorkflow

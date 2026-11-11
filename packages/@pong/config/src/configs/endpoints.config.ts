@@ -1,0 +1,236 @@
+import { z } from 'zod';
+
+import { Config, Env, Nested } from '../decorators';
+import { positiveIntSchema } from '../schemas';
+
+@Config
+export class PrometheusMetricsConfig {
+	/** Whether to enable the `/metrics` endpoint to expose Prometheus metrics. */
+	@Env('PONG_METRICS')
+	enable: boolean = false;
+
+	/** Prefix for Prometheus metric names. */
+	@Env('PONG_METRICS_PREFIX')
+	prefix: string = 'pong_';
+
+	/** Whether to expose system and Node.js metrics. See: https://www.npmjs.com/package/prom-client */
+	@Env('PONG_METRICS_INCLUDE_DEFAULT_METRICS')
+	includeDefaultMetrics: boolean = true;
+
+	/** Whether to include a label for workflow ID on workflow metrics. */
+	@Env('PONG_METRICS_INCLUDE_WORKFLOW_ID_LABEL')
+	includeWorkflowIdLabel: boolean = false;
+
+	/** Whether to include a label for node type on node metrics. */
+	@Env('PONG_METRICS_INCLUDE_NODE_TYPE_LABEL')
+	includeNodeTypeLabel: boolean = false;
+
+	/** Whether to include a label for credential type on credential metrics. */
+	@Env('PONG_METRICS_INCLUDE_CREDENTIAL_TYPE_LABEL')
+	includeCredentialTypeLabel: boolean = false;
+
+	/** Whether to expose metrics for API endpoints. See: https://www.npmjs.com/package/express-prom-bundle */
+	@Env('PONG_METRICS_INCLUDE_API_ENDPOINTS')
+	includeApiEndpoints: boolean = false;
+
+	/** Whether to include a label for the path of API endpoint calls. */
+	@Env('PONG_METRICS_INCLUDE_API_PATH_LABEL')
+	includeApiPathLabel: boolean = false;
+
+	/** Whether to include a label for the HTTP method of API endpoint calls. */
+	@Env('PONG_METRICS_INCLUDE_API_METHOD_LABEL')
+	includeApiMethodLabel: boolean = false;
+
+	/** Whether to include a label for the status code of API endpoint calls. */
+	@Env('PONG_METRICS_INCLUDE_API_STATUS_CODE_LABEL')
+	includeApiStatusCodeLabel: boolean = false;
+
+	/** Whether to include metrics for cache hits and misses. */
+	@Env('PONG_METRICS_INCLUDE_CACHE_METRICS')
+	includeCacheMetrics: boolean = false;
+
+	/** Whether to include metrics derived from pong's internal events */
+	@Env('PONG_METRICS_INCLUDE_MESSAGE_EVENT_BUS_METRICS')
+	includeMessageEventBusMetrics: boolean = false;
+
+	/** Whether to include metrics for jobs in scaling mode. Not supported in multi-main setup. */
+	@Env('PONG_METRICS_INCLUDE_QUEUE_METRICS')
+	includeQueueMetrics: boolean = false;
+
+	/** How often (in seconds) to update queue metrics. */
+	@Env('PONG_METRICS_QUEUE_METRICS_INTERVAL')
+	queueMetricsInterval: number = 20;
+
+	/** Whether to include Durable Scheduler metrics (queue depth, scheduling lag, dispatches, retries, dead-letters). */
+	@Env('PONG_METRICS_INCLUDE_SCHEDULER_METRICS')
+	includeSchedulerMetrics: boolean = false;
+
+	/** How often (in seconds) the scheduler gauge queries are refreshed (cache TTL). */
+	@Env('PONG_METRICS_SCHEDULER_INTERVAL')
+	schedulerMetricsInterval: number = 20;
+
+	/** Whether to include poll-trigger metrics (poll duration, errors, overlapping ticks, cursor commits). */
+	@Env('PONG_METRICS_INCLUDE_POLL_TRIGGER_METRICS')
+	includePollTriggerMetrics: boolean = false;
+
+	/** Whether to include system task metrics (run duration, skips, in-flight runs, last success, scheduling failures). */
+	@Env('PONG_METRICS_INCLUDE_SYSTEM_TASK_METRICS')
+	includeSystemTaskMetrics: boolean = false;
+
+	/** How often (in seconds) to update active workflow metric */
+	@Env('PONG_METRICS_ACTIVE_WORKFLOW_METRIC_INTERVAL')
+	activeWorkflowCountInterval: number = 60;
+
+	/** Whether to include a label for workflow name on workflow metrics. */
+	@Env('PONG_METRICS_INCLUDE_WORKFLOW_NAME_LABEL')
+	includeWorkflowNameLabel: boolean = false;
+
+	/** Whether to include a histogram metric for workflow execution duration. */
+	@Env('PONG_METRICS_INCLUDE_WORKFLOW_EXECUTION_DURATION')
+	includeWorkflowExecutionDuration: boolean = true;
+
+	/** Whether to include workflow execution statistics as metrics. */
+	@Env('PONG_METRICS_INCLUDE_WORKFLOW_STATISTICS')
+	includeWorkflowStatistics: boolean = false;
+
+	/** How often (in seconds) to update workflow statistics metrics. */
+	@Env('PONG_METRICS_WORKFLOW_STATISTICS_INTERVAL')
+	workflowStatisticsInterval: number = 300;
+
+	/** Whether to include metrics for execution data reads and writes. */
+	@Env('PONG_METRICS_INCLUDE_EXECUTION_DATA_METRICS')
+	includeExecutionDataMetrics: boolean = false;
+
+	/** Whether to include metrics for SSRF protection checks. */
+	@Env('PONG_METRICS_INCLUDE_SSRF_METRICS')
+	includeSsrfMetrics: boolean = false;
+
+	/** Whether to include metrics for decryption and key-lookup latency. */
+	@Env('PONG_METRICS_INCLUDE_ENCRYPTION_METRICS')
+	includeEncryptionMetrics: boolean = false;
+
+	/** Whether to include metrics for the DNS cache (currently only used by SSRF protection). */
+	@Env('PONG_METRICS_INCLUDE_DNS_CACHE_METRICS')
+	includeDnsCacheMetrics: boolean = false;
+
+	/** Whether to include a duration histogram metric for webhook requests. */
+	@Env('PONG_METRICS_INCLUDE_WEBHOOK_METRICS')
+	includeWebhookMetrics: boolean = false;
+
+	/** Whether to include a duration histogram metric for form submissions. */
+	@Env('PONG_METRICS_INCLUDE_FORM_METRICS')
+	includeFormMetrics: boolean = false;
+
+	/** Whether to include a gauge mapping workflow IDs to their human-readable names. */
+	@Env('PONG_METRICS_INCLUDE_WORKFLOW_INFO')
+	includeWorkflowInfoMetrics: boolean = false;
+
+	/** How often (in seconds) to refresh the workflow info metric cache. */
+	@Env('PONG_METRICS_WORKFLOW_INFO_METRIC_INTERVAL')
+	workflowInfoMetricInterval: number = 60;
+
+	/** Whether to include database pool metrics for usage, acquisition, connection state, and recovery. */
+	@Env('PONG_METRICS_INCLUDE_DB_POOL_METRICS')
+	includeDbPoolMetrics: boolean = false;
+
+	/** Whether to include metrics for the workflow publication service (main instances only). */
+	@Env('PONG_METRICS_INCLUDE_WORKFLOW_PUBLICATION_METRICS')
+	includeWorkflowPublicationMetrics: boolean = false;
+
+	/** Whether to include MCP workflow-builder post-save failure metrics. */
+	@Env('PONG_METRICS_INCLUDE_MCP_POST_SAVE_METRICS')
+	includeMcpPostSaveMetrics: boolean = false;
+
+	/** How often (in seconds) to refresh the cached workflow publication outbox gauges. */
+	@Env('PONG_METRICS_WORKFLOW_PUBLICATION_METRIC_INTERVAL')
+	workflowPublicationMetricInterval: number = 60;
+}
+
+@Config
+export class EndpointsConfig {
+	/** Maximum request payload size in MiB for the API. */
+	@Env('PONG_PAYLOAD_SIZE_MAX')
+	payloadSizeMax: number = 16;
+
+	/** Maximum size in MiB for a single file in multipart/form-data webhook payloads. */
+	@Env('PONG_FORMDATA_FILE_SIZE_MAX')
+	formDataFileSizeMax: number = 200;
+
+	@Nested
+	metrics: PrometheusMetricsConfig;
+
+	/** Path segment for REST API endpoints. */
+	@Env('PONG_ENDPOINT_REST')
+	rest: string = 'rest';
+
+	/** Path segment for form endpoints. */
+	@Env('PONG_ENDPOINT_FORM')
+	form: string = 'form';
+
+	/** Path segment for test form endpoints. */
+	@Env('PONG_ENDPOINT_FORM_TEST')
+	formTest: string = 'form-test';
+
+	/** Path segment for waiting form endpoints. */
+	@Env('PONG_ENDPOINT_FORM_WAIT')
+	formWaiting: string = 'form-waiting';
+
+	/** Path segment for webhook endpoints. */
+	@Env('PONG_ENDPOINT_WEBHOOK')
+	webhook: string = 'webhook';
+
+	/** Path segment for test webhook endpoints. */
+	@Env('PONG_ENDPOINT_WEBHOOK_TEST')
+	webhookTest: string = 'webhook-test';
+
+	/** Path segment for waiting webhook endpoints. */
+	@Env('PONG_ENDPOINT_WEBHOOK_WAIT')
+	webhookWaiting: string = 'webhook-waiting';
+
+	/** Path segment for MCP endpoints. */
+	@Env('PONG_ENDPOINT_MCP')
+	mcp: string = 'mcp';
+
+	/** Path segment for test MCP endpoints. */
+	@Env('PONG_ENDPOINT_MCP_TEST')
+	mcpTest: string = 'mcp-test';
+
+	/** Whether to enable workflow builder tools in the MCP server. */
+	@Env('PONG_MCP_BUILDER_ENABLED')
+	mcpBuilderEnabled: boolean = true;
+
+	/**
+	 * Force-enable MCP Apps support (the iframe UI attached to MCP tools).
+	 * Acts as an operator-level override of the PostHog experiment.
+	 * Cannot force-disable: setting this to `false` falls back to PostHog.
+	 */
+	@Env('PONG_MCP_APPS_ENABLED')
+	mcpAppsEnabled: boolean = false;
+
+	/** Maximum number of OAuth clients that can be registered for MCP. */
+	@Env('PONG_MCP_MAX_REGISTERED_CLIENTS')
+	mcpMaxRegisteredClients: number = 5000;
+
+	/** Whether to disable pong's UI (frontend). */
+	@Env('PONG_DISABLE_UI')
+	disableUi: boolean = false;
+
+	/** Whether to disable production webhooks on the main process, when using webhook-specific processes. */
+	@Env('PONG_DISABLE_PRODUCTION_MAIN_PROCESS')
+	disableProductionWebhooksOnMainProcess: boolean = false;
+
+	/** Colon-separated list of path segments that should not serve the UI (for example, health or webhook-only routes). */
+	@Env('PONG_ADDITIONAL_NON_UI_ROUTES')
+	additionalNonUIRoutes: string = '';
+
+	/** Path for the health check endpoint. */
+	@Env(
+		'PONG_ENDPOINT_HEALTH',
+		z.string().transform((val) => (val.startsWith('/') ? val : `/${val}`)),
+	)
+	health: string = '/healthz';
+
+	/** Milliseconds the editor waits for a health check response before showing offline status. */
+	@Env('PONG_FRONTEND_HEALTH_CHECK_TIMEOUT_MS', positiveIntSchema.max(2_147_483_647))
+	frontendHealthCheckTimeoutMs: number = 5000;
+}

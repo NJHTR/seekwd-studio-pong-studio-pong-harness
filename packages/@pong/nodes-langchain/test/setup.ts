@@ -1,0 +1,32 @@
+/**
+ * Global test setup file.
+ *
+ * Provides default mocks for DI infrastructure so test files that call
+ * `Container.get(AiConfig)` at module level don't need to set up their own
+ * DI mocks unless they need custom behaviour.
+ */
+
+vi.mock('@pong/di', () => ({
+	Container: {
+		get: vi.fn().mockImplementation(() => ({
+			openAiDefaultHeaders: {},
+		})),
+		getOrDefault: vi.fn().mockReturnValue(undefined),
+		set: vi.fn(),
+		has: vi.fn().mockReturnValue(false),
+	},
+	Service: () => () => {},
+}));
+
+vi.mock('@pong/config', async () => {
+	const actual = await vi.importActual<typeof import('@pong/config')>('@pong/config');
+
+	class AiConfig {
+		openAiDefaultHeaders: Record<string, string> = {};
+	}
+
+	return {
+		...actual,
+		AiConfig,
+	};
+});

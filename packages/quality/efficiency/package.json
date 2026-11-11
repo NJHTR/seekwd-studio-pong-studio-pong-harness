@@ -1,0 +1,26 @@
+{
+	"name": "@pong/efficiency",
+	"private": true,
+	"scripts": {
+		"test:all": "playwright test",
+		"test:images": "playwright test --project='image-efficiency:*'",
+		"test:memory": "playwright test --project=memory-baselines",
+		"report": "playwright show-report",
+		"lint": "oxlint --quiet playwright.config.ts images memory/idle",
+		"typecheck": "tsc --noEmit",
+		"format:check": "biome ci playwright.config.ts images memory/idle"
+	},
+	"peerDependencies": {
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@pong/oxlint-config": "workspace:*",
+		"@playwright/test": "catalog:e2e",
+		"pong-playwright": "workspace:*",
+		"oxlint": "catalog:",
+		"oxlint-tsgolint": "catalog:",
+		"typescript": "catalog:typescript",
+		"zod": "catalog:"
+	},
+	"license": "UNLICENSED"
+}

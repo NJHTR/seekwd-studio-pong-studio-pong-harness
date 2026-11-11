@@ -1,0 +1,25 @@
+{
+  "name": "@pong/frontend-vite-config",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "peerDependencies": {
+    "vite": "catalog:"
+  },
+  "devDependencies": {
+    "@pong/typescript-config": "workspace:*",
+    "typescript": "catalog:typescript",
+    "vite": "catalog:"
+  },
+  "main": "index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "scripts": {
+    "clean": "rimraf .turbo",
+    "typecheck": "tsc --noEmit",
+    "format": "biome format --write .",
+    "format:check": "biome ci ."
+  },
+  "license": "UNLICENSED"
+}

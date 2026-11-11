@@ -1,0 +1,31 @@
+import { WorkflowHistoryRepository } from '@pong/db';
+import { Service } from '@pong/di';
+import { DateTime } from 'luxon';
+
+import { License } from '@/license';
+
+import { getWorkflowHistoryPruneTime } from './workflow-history-helper';
+
+@Service()
+export class WorkflowHistoryManager {
+	constructor(
+		private workflowHistoryRepo: WorkflowHistoryRepository,
+		private license: License,
+	) {}
+
+	async prune(signal: AbortSignal): Promise<void> {
+		const pruneHours = getWorkflowHistoryPruneTime();
+		// No prune time set (infinite retention)
+		if (pruneHours === -1) {
+			return;
+		}
+		const pruneDateTime = DateTime.now().minus({ hours: pruneHours }).toJSDate();
+
+		const preserveNamedVersions = this.license.isLicensed('feat:namedVersions');
+		await this.workflowHistoryRepo.deleteEarlierThanExceptCurrentAndActive(
+			pruneDateTime,
+			preserveNamedVersions,
+			signal,
+		);
+	}
+}

@@ -1,0 +1,8 @@
+{
+	"extends": "@pong/typescript-config/tsconfig.common.go.json",
+	"compilerOptions": {
+		"types": ["node", "vitest/globals", "vite/client"]
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": ["dist/**/*", "node_modules/**/*"]
+}

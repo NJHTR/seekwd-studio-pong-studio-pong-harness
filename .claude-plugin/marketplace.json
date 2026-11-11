@@ -1,0 +1,12 @@
+{
+	"name": "pong",
+	"owner": {
+		"name": "pong"
+	},
+	"plugins": [
+		{
+			"name": "pong",
+			"source": "./.claude/plugins/pong"
+		}
+	]
+}

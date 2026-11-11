@@ -1,0 +1,33 @@
+import { Logger } from '@pong/backend-common';
+import { EventService } from '@pong/backend-services';
+import { Service } from '@pong/di';
+
+import { ChatHubAgentService } from './chat-hub-agent.service';
+
+@Service()
+export class ChatHubEventRelay {
+	constructor(
+		private readonly logger: Logger,
+		private readonly eventService: EventService,
+		private readonly chatHubAgentService: ChatHubAgentService,
+	) {
+		this.logger = this.logger.scoped('chat-hub');
+
+		this.logger.debug('initializing ChatHub event relay...');
+
+		this.eventService.on('user-deleted', async ({ targetUserId }) => {
+			if (!targetUserId) {
+				return;
+			}
+			await this.handleUserDeleted(targetUserId);
+		});
+	}
+
+	private async handleUserDeleted(userId: string): Promise<void> {
+		try {
+			await this.chatHubAgentService.deleteAllEmbeddingsForUser(userId);
+		} catch (error) {
+			this.logger.error('Failed to delete embeddings for deleted user', { userId, error });
+		}
+	}
+}

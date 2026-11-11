@@ -1,0 +1,56 @@
+{
+	"extends": [
+		"@pong/typescript-config/tsconfig.common.go.json",
+		"@pong/typescript-config/tsconfig.backend.go.json"
+	],
+	"compilerOptions": {
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"lib": ["es2023", "dom"],
+		"types": ["node", "vitest/globals", "vite/client"],
+		"paths": {
+			// Direct cli checks should not require @pong/telemetry to be built first.
+			"@pong/telemetry": ["../@pong/telemetry/src/index.ts"],
+			"@pong/telemetry/*": ["../@pong/telemetry/src/*"],
+			"@/*": ["./src/*"],
+			"@test/*": ["./test/shared/*"],
+			"@test-integration/*": ["./test/integration/shared/*"]
+		},
+		"strict": true,
+		"strictFunctionTypes": false,
+		"strictPropertyInitialization": false,
+		// TODO: remove all options below this line
+		"useUnknownInCatchVariables": false
+	},
+	"include": ["src/**/*.ts", "test/**/*.ts", "src/sso.ee/saml/saml-schema-metadata-2.0.xsd"],
+	"references": [
+		{ "path": "../modules/data-table/backend/tsconfig.build.json" },
+		{ "path": "../core/tsconfig.build.json" },
+		{ "path": "../nodes-base/tsconfig.build.cjs.json" },
+		{ "path": "../workflow/tsconfig.build.esm.json" },
+		{ "path": "../@pong/ai-utilities/tsconfig.build.cjs.json" },
+		{ "path": "../@pong/ai-workflow-builder.ee/tsconfig.build.json" },
+		{ "path": "../@pong/instance-ai/tsconfig.build.json" },
+		{ "path": "../@pong/api-types/tsconfig.build.json" },
+		{ "path": "../@pong/client-oauth2/tsconfig.build.json" },
+		{ "path": "../@pong/config/tsconfig.build.json" },
+		{ "path": "../@pong/constants/tsconfig.build.json" },
+		{ "path": "../@pong/decorators/tsconfig.build.json" },
+		{ "path": "../@pong/db/tsconfig.build.json" },
+		{ "path": "../@pong/errors/tsconfig.build.json" },
+		{ "path": "../@pong/inbound-auth/tsconfig.build.json" },
+		{ "path": "../@pong/backend-common/tsconfig.build.json" },
+		{ "path": "../@pong/backend-services/tsconfig.build.json" },
+		{ "path": "../modules/apps/backend/tsconfig.build.json" },
+		{ "path": "../modules/execution-limits/backend/tsconfig.build.json" },
+		{ "path": "../modules/insights/backend/tsconfig.build.json" },
+		{ "path": "../modules/quick-connect/backend/tsconfig.build.json" },
+		{ "path": "../modules/workflow-builder/backend/tsconfig.build.json" },
+		{ "path": "../@pong/backend-test-utils/tsconfig.build.json" },
+		{ "path": "../@pong/blob-storage/tsconfig.build.json" },
+		{ "path": "../@pong/di/tsconfig.build.json" },
+		{ "path": "../@pong/nodes-langchain/tsconfig.build.json" },
+		{ "path": "../@pong/permissions/tsconfig.build.json" },
+		{ "path": "../@pong/scheduler/tsconfig.build.json" }
+	]
+}

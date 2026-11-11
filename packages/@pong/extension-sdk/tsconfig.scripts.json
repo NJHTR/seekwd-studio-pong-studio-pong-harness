@@ -1,0 +1,7 @@
+{
+	"extends": "@pong/typescript-config/tsconfig.backend.go.json",
+	"compilerOptions": {
+		"noEmit": true
+	},
+	"include": ["scripts/**/*.ts"]
+}

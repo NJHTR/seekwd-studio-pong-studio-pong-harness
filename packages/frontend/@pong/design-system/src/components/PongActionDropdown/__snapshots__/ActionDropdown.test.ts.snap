@@ -1,0 +1,15 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`components > PongActionDropdown > should render custom styling correctly 1`] = `
+"<div class="action-dropdown-container actionDropdownContainer">
+  <pong-icon-button-stub variant="ghost" icon="ellipsis" size="medium" loading="false" icononly="true" disabled="false" class="trigger activator" id="reka-dropdown-menu-trigger-v-1" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="pong-action-dropdown-21" data-state="closed" aria-label="Actions"></pong-icon-button-stub>
+  <!--v-if-->
+</div>"
+`;
+
+exports[`components > PongActionDropdown > should render default styling correctly 1`] = `
+"<div class="action-dropdown-container actionDropdownContainer">
+  <pong-icon-button-stub variant="ghost" icon="ellipsis" size="medium" loading="false" icononly="true" disabled="false" class="trigger activator" id="reka-dropdown-menu-trigger-v-1" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="pong-action-dropdown-1" data-state="closed" aria-label="Actions"></pong-icon-button-stub>
+  <!--v-if-->
+</div>"
+`;

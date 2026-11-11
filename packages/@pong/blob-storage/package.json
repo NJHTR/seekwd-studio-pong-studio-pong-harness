@@ -1,0 +1,67 @@
+{
+  "name": "@pong/blob-storage",
+  "version": "1.16.0",
+  "description": "Blob storage layer for pong, with filesystem, S3, and Azure Blob backends",
+  "scripts": {
+    "clean": "rimraf dist .turbo",
+    "dev": "pnpm watch",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "build:unchecked": "tsc -p tsconfig.build.json --noCheck",
+    "format": "biome format --write .",
+    "format:check": "biome ci .",
+    "lint": "oxlint --quiet",
+    "lint:fix": "oxlint --fix",
+    "watch": "tsc -p tsconfig.build.json --watch",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:dev": "vitest --silent=false"
+  },
+  "main": "dist/index.js",
+  "module": "src/index.ts",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./object-store": {
+      "types": "./dist/object-store/index.d.ts",
+      "default": "./dist/object-store/index.js"
+    },
+    "./azure-blob": {
+      "types": "./dist/azure-blob/index.d.ts",
+      "default": "./dist/azure-blob/index.js"
+    }
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.808.0",
+    "@azure/identity": "catalog:",
+    "@azure/storage-blob": "catalog:",
+    "@pong/backend-common": "workspace:*",
+    "@pong/backend-network": "workspace:*",
+    "@pong/config": "workspace:*",
+    "@pong/di": "workspace:*",
+    "@pong/utils": "workspace:*",
+    "lodash": "catalog:",
+    "pong-workflow": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@pong/oxlint-config": "workspace:*",
+    "@pong/typescript-config": "workspace:*",
+    "@pong/vitest-config": "workspace:*",
+    "@types/lodash": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:typescript",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vitest-mock-extended": "catalog:"
+  },
+  "license": "UNLICENSED"
+}

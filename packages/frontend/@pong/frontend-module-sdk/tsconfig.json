@@ -1,0 +1,21 @@
+{
+	"extends": "@pong/typescript-config/tsconfig.frontend.json",
+	"compilerOptions": {
+		"rootDirs": [".", "../design-system/src", "../composables/src"],
+		"noEmit": true,
+		"moduleResolution": "bundler",
+		"types": [
+			"vite/client",
+			"vitest/globals",
+			"unplugin-icons/types/vue",
+			"../design-system/src/shims-modules.d.ts"
+		],
+		"paths": {
+			"@pong/design-system": ["../design-system/src/index.ts"],
+			"@pong/design-system/*": ["../design-system/src/*"],
+			"@pong/composables/*": ["../composables/src/*"],
+			"@pong/utils/*": ["../../../@pong/utils/src/*"]
+		}
+	},
+	"include": ["src/**/*.ts", "vite.config.ts"]
+}

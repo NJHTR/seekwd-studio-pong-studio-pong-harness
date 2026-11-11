@@ -1,0 +1,63 @@
+{
+  "name": "pong-node-dev",
+  "version": "2.9.0",
+  "description": "CLI to simplify pong credentials/node development",
+  "private": true,
+  "main": "dist/src/index",
+  "types": "dist/src/index.d.ts",
+  "oclif": {
+    "commands": "./dist/commands",
+    "bin": "pong-node-dev"
+  },
+  "scripts": {
+    "clean": "rimraf dist .turbo",
+    "dev": "pnpm watch",
+    "typecheck": "tsc --noEmit",
+    "build-node-dev": "tsc",
+    "format": "biome format --write .",
+    "format:check": "biome ci .",
+    "lint": "eslint src --quiet",
+    "lint:fix": "eslint src --fix",
+    "prepack": "echo \"Building project...\" && rm -rf dist && tsc -b",
+    "watch": "tsc --watch",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "bin": {
+    "pong-node-dev": "./bin/pong-node-dev"
+  },
+  "keywords": [
+    "development",
+    "node",
+    "helper",
+    "pong"
+  ],
+  "files": [
+    "bin",
+    "dist",
+    "templates",
+    "src/tsconfig-build.json"
+  ],
+  "devDependencies": {
+    "@pong/eslint-config": "workspace:*",
+    "@pong/typescript-config": "workspace:*",
+    "@pong/vitest-config": "workspace:*",
+    "@types/inquirer": "^7.0.1",
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@pong/di": "workspace:*",
+    "@oclif/core": "4.0.7",
+    "change-case": "catalog:",
+    "fast-glob": "catalog:",
+    "inquirer": "^7.0.1",
+    "pong-core": "workspace:*",
+    "pong-workflow": "workspace:*",
+    "replace-in-file": "^8.3.0",
+    "tmp-promise": "catalog:"
+  },
+  "license": "UNLICENSED"
+}

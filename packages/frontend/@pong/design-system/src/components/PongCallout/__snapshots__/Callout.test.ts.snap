@@ -1,0 +1,79 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`components > PongCallout > should render additional slots correctly 1`] = `
+"<div class="pong-callout callout custom round" role="alert">
+  <div class="messageSection">
+    <div class="icon">
+      <pong-icon-stub icon="git-branch" size="medium" spin="false"></pong-icon-stub>
+    </div>
+    <pong-text-stub bold="false" size="small" compact="false" tag="span"></pong-text-stub> &nbsp; <pong-link-stub size="small"></pong-link-stub>
+  </div>
+  <pong-link-stub theme="secondary" size="small" bold="true" underline="true" to="https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness\"></pong-link-stub>
+</div>"
+`;
+
+exports[`components > PongCallout > should render custom theme correctly 1`] = `
+"<div class="pong-callout callout custom round" role="alert">
+  <div class="messageSection">
+    <div class="icon">
+      <pong-icon-stub icon="git-branch" size="medium" spin="false"></pong-icon-stub>
+    </div>
+    <pong-text-stub bold="false" size="small" compact="false" tag="span"></pong-text-stub> &nbsp;
+  </div>
+</div>"
+`;
+
+exports[`components > PongCallout > should render danger theme correctly 1`] = `
+"<div class="pong-callout callout danger round" role="alert">
+  <div class="messageSection">
+    <div class="icon">
+      <pong-icon-stub icon="triangle-alert" size="medium" spin="false"></pong-icon-stub>
+    </div>
+    <pong-text-stub bold="false" size="small" compact="false" tag="span"></pong-text-stub> &nbsp;
+  </div>
+</div>"
+`;
+
+exports[`components > PongCallout > should render info theme correctly 1`] = `
+"<div class="pong-callout callout info round" role="alert">
+  <div class="messageSection">
+    <div class="icon">
+      <pong-icon-stub icon="info" size="medium" spin="false"></pong-icon-stub>
+    </div>
+    <pong-text-stub bold="false" size="small" compact="false" tag="span"></pong-text-stub> &nbsp;
+  </div>
+</div>"
+`;
+
+exports[`components > PongCallout > should render secondary theme correctly 1`] = `
+"<div class="pong-callout callout secondary round" role="alert">
+  <div class="messageSection">
+    <div class="icon">
+      <pong-icon-stub icon="info" size="medium" spin="false"></pong-icon-stub>
+    </div>
+    <pong-text-stub bold="false" size="small" compact="false" tag="span"></pong-text-stub> &nbsp;
+  </div>
+</div>"
+`;
+
+exports[`components > PongCallout > should render success theme correctly 1`] = `
+"<div class="pong-callout callout success round" role="alert">
+  <div class="messageSection">
+    <div class="icon">
+      <pong-icon-stub icon="circle-check" size="medium" spin="false"></pong-icon-stub>
+    </div>
+    <pong-text-stub bold="false" size="small" compact="false" tag="span"></pong-text-stub> &nbsp;
+  </div>
+</div>"
+`;
+
+exports[`components > PongCallout > should render warning theme correctly 1`] = `
+"<div class="pong-callout callout warning round" role="alert">
+  <div class="messageSection">
+    <div class="icon">
+      <pong-icon-stub icon="triangle-alert" size="medium" spin="false"></pong-icon-stub>
+    </div>
+    <pong-text-stub bold="false" size="small" compact="false" tag="span"></pong-text-stub> &nbsp;
+  </div>
+</div>"
+`;

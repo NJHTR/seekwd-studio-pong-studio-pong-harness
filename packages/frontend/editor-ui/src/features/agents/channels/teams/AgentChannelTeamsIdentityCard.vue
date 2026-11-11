@@ -1,0 +1,116 @@
+<script setup lang="ts">
+/** How the agent appears in Teams, with the package that carries it. */
+import { PongButton, PongIcon, PongText, PongTooltip } from '@pong/design-system';
+import { useI18n } from '@pong/i18n';
+import AgentPersonalisationIcon from '../../components/AgentPersonalisationIcon.vue';
+import { injectAgentPersonalisation } from '../agentPersonalisation';
+
+withDefaults(
+	defineProps<{
+		name: string;
+		description: string;
+		tooltip?: string;
+		ready: boolean;
+		loading?: boolean;
+		/** Teams holds an older version of what this card shows. */
+		outdated?: boolean;
+	}>(),
+	{ tooltip: '', loading: false, outdated: false },
+);
+
+const emit = defineEmits<{ download: [] }>();
+
+const i18n = useI18n();
+
+const personalisation = injectAgentPersonalisation();
+</script>
+
+<template>
+	<div
+		:class="[
+			$style.identity,
+			ready ? $style.identityReady : $style.locked,
+			{ [$style.outdated]: outdated },
+		]"
+		data-testid="teams-identity"
+	>
+		<AgentPersonalisationIcon :personalisation="personalisation" :size="36" />
+		<div :class="$style.identityText">
+			<PongText size="small" bold data-testid="teams-identity-name">
+				{{ name }}
+				<PongTooltip v-if="tooltip" :content="tooltip">
+					<PongIcon
+						icon="info"
+						size="xsmall"
+						:class="$style.hint"
+						data-testid="teams-identity-info"
+					/>
+				</PongTooltip>
+			</PongText>
+			<PongText size="small" :class="$style.hint" data-testid="teams-identity-description">
+				{{ description }}
+			</PongText>
+		</div>
+		<!-- The recommended setup offers a menu here instead of the download. -->
+		<slot name="action">
+			<PongButton
+				variant="outline"
+				size="medium"
+				:disabled="!ready || loading"
+				:loading="loading"
+				data-testid="teams-download-package"
+				@click="emit('download')"
+			>
+				{{ i18n.baseText('agents.channels.teams.setup.install.button') }}
+				<PongIcon icon="arrow-circle-down" size="medium" />
+			</PongButton>
+		</slot>
+	</div>
+</template>
+
+<style module lang="scss">
+.identity {
+	display: flex;
+	/* Narrow containers, like the Assistant chat, move the action below the text. */
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--spacing--xs);
+	width: 100%;
+	padding: var(--spacing--xs);
+	/* Matches the availability panel next to it. */
+	border: var(--border-width, 1px) solid var(--border-color--subtle);
+	border-radius: var(--radius--xs);
+}
+
+/*
+ * One step off the modal in both themes. The semantic tokens are relative to
+ * the page, and the dark modal is lighter than the dark page surface.
+ */
+.identityReady {
+	background: light-dark(var(--color--neutral-50), var(--color--white-alpha-50));
+	/* The dark fill matches the subtle border, which would hide it. */
+	border-color: light-dark(var(--border-color--subtle), var(--border-color));
+}
+
+.outdated.outdated {
+	background: var(--callout--color--background--warning);
+	border-color: var(--callout--border-color--warning);
+}
+
+.locked {
+	opacity: 0.45;
+	pointer-events: none;
+}
+
+.identityText {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing--5xs);
+	flex: 1 1 10rem;
+	min-width: 0;
+}
+
+.hint {
+	color: var(--text-color--subtler);
+}
+</style>

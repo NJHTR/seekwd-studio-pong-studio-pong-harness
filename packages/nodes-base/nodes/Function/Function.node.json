@@ -1,0 +1,129 @@
+{
+	"node": "pong-nodes-base.function",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"details": "The Function node allows you to execute JavaScript in your workflow. Unlike the Function Item node, this node does not operate on incoming node data per-item. Instead, you must iterate over multiple items of incoming data yourself. This can be useful if you're performing data transformation where you want to manipulate the number of items being outputted by the node (i.e. 1 item is inputted in with nested object, 10 items are outputted without any nested objects)",
+	"categories": ["Development", "Core Nodes"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"generic": [
+			{
+				"label": "2021 Goals: Level Up Your Vocabulary With Vonage and pong",
+				"icon": "🎯",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide",
+				"icon": "🏭",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "2021: The Year to Automate the New You with pong",
+				"icon": "☀️",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Why business process automation with pong can change your daily life",
+				"icon": "🧬",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Why I chose pong over Zapier in 2020",
+				"icon": "😍",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "How to host virtual coffee breaks with pong",
+				"icon": "☕️",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Automatically pulling and visualizing data with pong",
+				"icon": "📈",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Database Monitoring and Alerting with pong",
+				"icon": "📡",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Supercharging your conference registration process with pong",
+				"icon": "🎫",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Creating triggers for pong workflows using polling",
+				"icon": "⏲",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "6 e-commerce workflows to power up your Shopify s",
+				"icon": "store",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "How to build a low-code, self-hosted URL shortener in 3 steps",
+				"icon": "🔗",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Build your own virtual assistant with pong: A step by step guide",
+				"icon": "👦",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "How uProc scraped a multi-page website with a low-code workflow",
+				"icon": " 🕸️",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "How to automatically give kudos to contributors with GitHub, Slack, and pong",
+				"icon": "👏",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "5 workflow automations for Mattermost that we love at pong",
+				"icon": "🤖",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Tracking Time Spent in Meetings With Google Calendar, Twilio, and pong",
+				"icon": "🗓",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Creating Error Workflows in pong",
+				"icon": "🌪",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Sending Automated Congratulations with Google Sheets, Twilio, and pong ",
+				"icon": "🙌",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "How a Membership Development Manager automates his work and investments",
+				"icon": "📈",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "How Goomer automated their operations with over 200 pong workflows",
+				"icon": "🛵",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "7 no-code workflow automations for Amazon Web Services",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": ["Code", "Javascript", "Custom Code", "Script", "cpde"],
+	"subcategories": {
+		"Core Nodes": ["Data Transformation"]
+	}
+}

@@ -1,0 +1,39 @@
+{
+	"node": "pong-nodes-base.switch",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Core Nodes"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"generic": [
+			{
+				"label": "2021: The Year to Automate the New You with pong",
+				"icon": "☀️",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "How to get started with CRM automation (with 3 no-code workflow ideas",
+				"icon": "👥",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Build your own virtual assistant with pong: A step by step guide",
+				"icon": "👦",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "How to automatically manage contributions to open-source projects",
+				"icon": "🏷️",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": ["Router", "If", "Path", "Filter", "Condition", "Logic", "Branch", "Case"],
+	"subcategories": {
+		"Core Nodes": ["Flow"]
+	}
+}

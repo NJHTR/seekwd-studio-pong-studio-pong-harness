@@ -1,0 +1,17 @@
+import type { IExecuteFunctions, INodeType } from 'pong-workflow';
+
+import { router } from './actions/router';
+import { versionDescription } from './actions/versionDescription';
+import { listSearch } from './methods';
+
+export class Moonshot implements INodeType {
+	description = versionDescription;
+
+	methods = {
+		listSearch,
+	};
+
+	async execute(this: IExecuteFunctions) {
+		return await router.call(this);
+	}
+}

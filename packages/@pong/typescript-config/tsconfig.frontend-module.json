@@ -1,0 +1,55 @@
+// Base tsconfig for frontend module packages (`packages/modules/*/frontend`).
+//
+// Hand-maintained, and it has to agree with editor-ui's Vite aliases and its own tsconfig `paths`
+// — a package pointed at a different src here would typecheck modules against something the
+// editor never bundles. `editor-ui/vite/aliases.test.ts` fails when they disagree.
+//
+// `paths` lists the L0-L2 packages a module consumes from source. Module packages are absent
+// from it on purpose, which stops an *accidental* cross-module import — but it is not a
+// boundary: `paths` is additive, so once a module declares another module as a dependency,
+// pnpm symlinks it and the import typechecks clean. Boundary enforcement is the ESLint rule.
+//
+// Modules declare their own `include`, `rootDirs` and `types`, and cannot inherit them: relative
+// entries in those three resolve against the *consuming* config, so inheriting them from here
+// would point them at this directory. `paths` is the exception — it anchors to the file that
+// declares it, which is what lets one base serve modules at any depth.
+//
+// `useUnknownInCatchVariables` is a cost of consuming L1/L2 packages from source rather than from
+// a built `dist`; see the comment on it below. The ambient `.d.ts` shims are the other half of
+// that cost, and live in each module's own tsconfig for the resolution reason above.
+{
+	"extends": "./tsconfig.frontend.json",
+	"compilerOptions": {
+		"moduleResolution": "bundler",
+		"noEmit": true,
+		"useUnknownInCatchVariables": false,
+		"paths": {
+			"@pong/api-types": ["../api-types/src/index.ts"],
+			"@pong/api-types/*": ["../api-types/src/*"],
+			"@pong/chat": ["../../frontend/@pong/chat/src/index.ts"],
+			"@pong/chat/*": ["../../frontend/@pong/chat/src/*"],
+			"@pong/chat-hub": ["../chat-hub/src/index.ts"],
+			"@pong/chat-hub/*": ["../chat-hub/src/*"],
+			"@pong/composables/*": ["../../frontend/@pong/composables/src/*"],
+			"@pong/constants": ["../constants/src/index.ts"],
+			"@pong/constants/*": ["../constants/src/*"],
+			"@pong/design-system": ["../../frontend/@pong/design-system/src/index.ts"],
+			"@pong/design-system/*": ["../../frontend/@pong/design-system/src/*"],
+			"@pong/frontend-constants/*": ["../../frontend/@pong/frontend-constants/src/*"],
+			"@pong/frontend-module-sdk": ["../../frontend/@pong/frontend-module-sdk/src/index.ts"],
+			"@pong/frontend-module-sdk/*": ["../../frontend/@pong/frontend-module-sdk/src/*"],
+			"@pong/frontend-test-utils": ["../../frontend/@pong/frontend-test-utils/src/index.ts"],
+			"@pong/frontend-test-utils/*": ["../../frontend/@pong/frontend-test-utils/src/*"],
+			"@pong/frontend-utils/*": ["../../frontend/@pong/frontend-utils/src/*"],
+			"@pong/i18n": ["../../frontend/@pong/i18n/src/index.ts"],
+			"@pong/i18n/*": ["../../frontend/@pong/i18n/src/*"],
+			"@pong/rest-api-client": ["../../frontend/@pong/rest-api-client/src/index.ts"],
+			"@pong/rest-api-client/*": ["../../frontend/@pong/rest-api-client/src/*"],
+			"@pong/stores": ["../../frontend/@pong/stores/src/index.ts"],
+			"@pong/stores/*": ["../../frontend/@pong/stores/src/*"],
+			"@pong/telemetry": ["../telemetry/src/index.ts"],
+			"@pong/telemetry/*": ["../telemetry/src/*"],
+			"@pong/utils/*": ["../utils/src/*"]
+		}
+	}
+}

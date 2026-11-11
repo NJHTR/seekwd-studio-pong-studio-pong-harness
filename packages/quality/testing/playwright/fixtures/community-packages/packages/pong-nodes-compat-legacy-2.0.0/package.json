@@ -1,0 +1,12 @@
+{
+	"name": "pong-nodes-compat-legacy",
+	"version": "2.0.0",
+	"description": "Compatibility fixture: the legacy package moves to node API level 3",
+	"license": "MIT",
+	"keywords": ["pong-community-node-package"],
+	"files": ["dist"],
+	"pong": {
+		"pongNodesApiVersion": 3,
+		"nodes": ["dist/CompatProbe.node.js"]
+	}
+}

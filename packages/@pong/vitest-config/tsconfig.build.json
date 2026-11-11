@@ -1,0 +1,10 @@
+{
+	"extends": ["./tsconfig.json", "@pong/typescript-config/tsconfig.build.go.json"],
+	"compilerOptions": {
+		"composite": true,
+		"rootDir": ".",
+		"outDir": "dist"
+	},
+	"include": ["**/*.ts"],
+	"exclude": ["dist", "**/*.test.ts"]
+}

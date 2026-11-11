@@ -1,0 +1,56 @@
+{
+  "name": "@pong/scheduler",
+  "version": "1.17.0",
+  "scripts": {
+    "clean": "rimraf dist .turbo",
+    "dev": "pnpm watch",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "build:unchecked": "tsc -p tsconfig.build.json --noCheck",
+    "format": "biome format --write .",
+    "format:check": "biome ci .",
+    "lint": "oxlint --quiet",
+    "lint:fix": "oxlint --fix",
+    "mutate": "node ../../../scripts/mutation-health/mutate.mjs --package-dir packages/@pong/scheduler",
+    "watch": "tsc -p tsconfig.build.json --watch",
+    "test": "vitest run --passWithNoTests",
+    "test:unit": "vitest run --passWithNoTests",
+    "test:dev": "vitest --silent=false"
+  },
+  "main": "dist/index.js",
+  "module": "src/index.ts",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@pong/constants": "workspace:*",
+    "@pong/utils": "workspace:*",
+    "cron-parser": "catalog:",
+    "luxon": "catalog:",
+    "pong-workflow": "workspace:*"
+  },
+  "devDependencies": {
+    "@pong/oxlint-config": "workspace:*",
+    "@pong/typescript-config": "workspace:*",
+    "@pong/vitest-config": "workspace:*",
+    "@stryker-mutator/core": "catalog:",
+    "@stryker-mutator/vitest-runner": "catalog:",
+    "@types/luxon": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "fast-check": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:typescript",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vitest-mock-extended": "catalog:"
+  },
+  "license": "UNLICENSED"
+}

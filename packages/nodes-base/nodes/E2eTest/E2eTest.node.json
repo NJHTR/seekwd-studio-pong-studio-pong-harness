@@ -1,0 +1,18 @@
+{
+	"node": "pong-nodes-base.e2eTest",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"details": "The is a test node for e2e testing.",
+	"categories": ["Core Nodes"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"subcategories": {
+		"Core Nodes": ["Helpers"]
+	},
+	"e2e": true
+}

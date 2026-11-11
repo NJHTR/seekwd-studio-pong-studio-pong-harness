@@ -1,0 +1,15 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`components > PongExternalLink > should render correctly with href 1`] = `
+"<a href="https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness" target="_blank" rel="noopener noreferrer" class="link">
+  <pong-icon-stub icon="external-link" spin="false"></pong-icon-stub>
+</a>"
+`;
+
+exports[`components > PongExternalLink > should render correctly with slot content 1`] = `"<a href="https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness" target="_blank" rel="noopener noreferrer" class="link">Visit pong<pong-icon-stub icon="external-link" spin="false"></pong-icon-stub></a>"`;
+
+exports[`components > PongExternalLink > should render correctly without href 1`] = `
+"<button class="link">
+  <pong-icon-stub icon="external-link" spin="false"></pong-icon-stub>
+</button>"
+`;

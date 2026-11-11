@@ -1,0 +1,10 @@
+{
+	"extends": "@pong/typescript-config/tsconfig.common.go.json",
+	"compilerOptions": {
+		"types": ["node", "vitest/globals"],
+		"paths": {
+			"@/*": ["./src/*"]
+		}
+	},
+	"include": ["src/**/*.ts"]
+}

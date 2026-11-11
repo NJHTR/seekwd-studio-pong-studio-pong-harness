@@ -1,0 +1,22 @@
+{
+	"node": "pong-nodes-base.ftp",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Core Nodes", "Data & Storage", "Development", "Utility"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": ["SFTP", "FTP", "Binary", "File", "Transfer"],
+	"subcategories": {
+		"Core Nodes": ["Files", "Helpers"]
+	}
+}

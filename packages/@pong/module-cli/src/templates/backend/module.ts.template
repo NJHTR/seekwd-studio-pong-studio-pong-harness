@@ -1,0 +1,5 @@
+import type { ModuleInterface } from '@pong/decorators';
+import { BackendModule } from '@pong/decorators';
+
+@BackendModule({ name: '{{name}}' })
+export class {{PascalName}}Module implements ModuleInterface {}

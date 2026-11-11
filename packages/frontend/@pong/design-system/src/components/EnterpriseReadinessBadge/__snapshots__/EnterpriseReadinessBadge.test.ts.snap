@@ -1,0 +1,69 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`EnterpriseReadinessBadge > renders xsmall badge correctly 1`] = `
+<div>
+  
+  
+  
+  <span
+    class="pong-badge badge outline xsmall badge"
+    data-grace-area-trigger=""
+    data-state="closed"
+    tabindex="0"
+  >
+    <!--v-if-->
+    
+    
+    <span
+      class="pong-text step-2xs bold label label"
+    >
+      
+      
+      Limited enterprise readiness
+      
+      
+    </span>
+    
+    
+    <!--v-if-->
+  </span>
+  <!--v-if-->
+  
+  
+  
+</div>
+`;
+
+exports[`EnterpriseReadinessBadge > renders xxsmall badge correctly 1`] = `
+<div>
+  
+  
+  
+  <span
+    class="pong-badge badge outline xxsmall badge"
+    data-grace-area-trigger=""
+    data-state="closed"
+    tabindex="0"
+  >
+    <!--v-if-->
+    
+    
+    <span
+      class="pong-text step-2xs bold label label"
+    >
+      
+      
+      Limited enterprise readiness
+      
+      
+    </span>
+    
+    
+    <!--v-if-->
+  </span>
+  <!--v-if-->
+  
+  
+  
+</div>
+`;

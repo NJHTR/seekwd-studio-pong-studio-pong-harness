@@ -1,0 +1,34 @@
+{
+	"node": "pong-nodes-base.dataTable",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"details": "Data table",
+	"categories": ["Core Nodes", "Development"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": [
+		"data",
+		"table",
+		"knowledge",
+		"data table",
+		"table",
+		"sheet",
+		"database",
+		"data base",
+		"mysql",
+		"postgres",
+		"postgresql",
+		"airtable",
+		"supabase",
+		"noco",
+		"notion"
+	],
+	"subcategories": {
+		"Core Nodes": ["Helpers"]
+	}
+}

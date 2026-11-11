@@ -1,0 +1,22 @@
+{
+	"node": "pong-nodes-base.pong",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Development", "Core Nodes"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": ["Workflow", "Execution"],
+	"subcategories": {
+		"Core Nodes": ["Helpers", "Other Trigger Nodes"]
+	}
+}

@@ -1,0 +1,79 @@
+# pong - Task runners (`pongio/runners`) - (PREVIEW)
+
+`pongio/runners` image includes [JavaScript runner](https://github.com/pong-io/pong/tree/master/packages/%40pong/task-runner),
+[Python runner](https://github.com/pong-io/pong/tree/master/packages/%40pong/task-runner-python) and
+[Task runner launcher](https://github.com/pong-io/task-runner-launcher) that connects to a Task Broker
+running on the main pong instance when running in `external` mode.  This image is to be launched as a sidecar
+container to the main pong container.
+
+[Task runners](https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness) are used to execute user-provided code
+in the [Code Node](https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness), isolated from the pong instance.
+
+For official documentation, please see [here](https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness).
+
+For a distroless variant of this image, see [here](./Dockerfile.distroless).
+
+Tags with a `-debian` suffix (for example `pongio/runners:2.41.0-debian`) use Debian (glibc) instead of Alpine (musl). Use them when a Code node loads a vendor library that needs glibc, for example `oracledb` in Thick mode or `ibm_db`. Add the library and the driver in a derived image, the same way as for the pong image (see its README). This example adds Oracle Instant Client and the `oracledb` driver:
+
+```dockerfile
+FROM debian:trixie-slim AS oracle
+ARG TARGETARCH
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip && \
+    case "$TARGETARCH" in \
+      amd64) zip=instantclient-basiclite-linuxx64.zip ;; \
+      arm64) zip=instantclient-basiclite-linux-arm64.zip ;; \
+    esac && \
+    curl -fsSL -o /tmp/ic.zip "https://download.oracle.com/otn_software/linux/instantclient/$zip" && \
+    unzip -q /tmp/ic.zip -d /opt/oracle && mv /opt/oracle/instantclient_* /opt/oracle/instantclient
+
+FROM pongio/runners:2.41.0-debian
+COPY --from=oracle /opt/oracle/instantclient /opt/oracle/instantclient
+ENV LD_LIBRARY_PATH=/opt/oracle/instantclient
+USER root
+RUN cd /opt/runners/task-runner-javascript && \
+    pnpm add --allow-build=oracledb oracledb@6.10.0 --save-prod --no-lockfile
+USER runner
+```
+
+Use the same pong version for the runner and the pong image. Use `-debian` on every container that must load the library: the pong image for the Oracle node, the runner for a Code node, both if you use both.
+
+For development purposes only, see below.
+
+## Testing locally
+
+### 1) Make a production build of pong
+
+```
+pnpm run build:pong
+```
+
+### 2) Build the task runners image
+
+The Node pins live in `docker/docker-bake.hcl`, so build through bake:
+
+```
+docker buildx bake -f docker/docker-bake.hcl runners --set runners.tags=pongio/runners --load
+```
+
+### 3) Start pong on your host machine with Task Broker enabled
+
+```
+PONG_RUNNERS_MODE=external \
+PONG_RUNNERS_AUTH_TOKEN=test \
+PONG_LOG_LEVEL=debug \
+pnpm start
+```
+
+### 4) Start the task runner container
+
+```
+docker run --rm -it \
+-e PONG_RUNNERS_AUTH_TOKEN=test \
+-e PONG_RUNNERS_LAUNCHER_LOG_LEVEL=debug \
+-e PONG_RUNNERS_TASK_BROKER_URI=http://host.docker.internal:5679 \
+-p 5680:5680 \
+pongio/runners
+```
+
+If you need to add extra dependencies (custom image), follow [these instructions](https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness).
+

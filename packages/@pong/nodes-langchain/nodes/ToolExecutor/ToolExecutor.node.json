@@ -1,0 +1,17 @@
+{
+	"node": "pong-nodes-base.toolExecutor",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"details": "Can execute tools by simulating an agent function call with a given query.",
+	"categories": ["Core Nodes"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"subcategories": {
+		"Core Nodes": ["Helpers"]
+	}
+}

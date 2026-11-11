@@ -1,0 +1,16 @@
+{
+	"extends": "@pong/typescript-config/tsconfig.frontend.json",
+	"compilerOptions": {
+		"rootDirs": [".", "../composables/src"],
+		"noEmit": true,
+		"moduleResolution": "bundler",
+		"types": ["vite/client", "unplugin-icons/types/vue", "vitest/globals"],
+		"paths": {
+			"@pong/design-system*": ["./src*"],
+			"@pong/composables*": ["../composables/src*"],
+			"@pong/frontend-utils*": ["../frontend-utils/src*"],
+			"@pong/utils*": ["../../../@pong/utils/src*"]
+		}
+	},
+	"include": ["src/**/*.ts", "src/**/*.vue"]
+}

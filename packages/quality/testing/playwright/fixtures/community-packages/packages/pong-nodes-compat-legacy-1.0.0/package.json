@@ -1,0 +1,11 @@
+{
+	"name": "pong-nodes-compat-legacy",
+	"version": "1.0.0",
+	"description": "Compatibility fixture: no pongNodesApiVersion, a legacy package",
+	"license": "MIT",
+	"keywords": ["pong-community-node-package"],
+	"files": ["dist"],
+	"pong": {
+		"nodes": ["dist/CompatProbe.node.js"]
+	}
+}

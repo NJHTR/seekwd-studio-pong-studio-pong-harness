@@ -1,0 +1,322 @@
+import { Time } from '@pong/constants';
+
+import { Config, Env } from '../decorators';
+import { concurrencyLimitSchema } from '../schemas';
+
+@Config
+export class InstanceAiConfig {
+	/**
+	 * Whether the pong Assistant is on when no admin has turned it on or off in Settings > Assistant.
+	 * When unset, it's off on the Enterprise plan and on for all other plans. A choice saved in
+	 * Settings > Assistant overrides this variable.
+	 */
+	@Env('PONG_INSTANCE_AI_ENABLED')
+	enabled?: boolean;
+
+	/**
+	 * Enable workflow suggestions, self-healing investigations, and result review.
+	 */
+	@Env('PONG_INSTANCE_AI_WORKFLOW_SUGGESTIONS_ENABLED')
+	workflowSuggestionsEnabled: boolean = false;
+
+	/**
+	 * Whether pong runs the pong Assistant on the agents runtime as well. This is an
+	 * experimental preview for development and evaluation. Don't turn it on in
+	 * production.
+	 */
+	@Env('PONG_INSTANCE_AI_ASSISTANT_AGENT_ENABLED')
+	assistantAgentEnabled: boolean = false;
+
+	/** LLM model in provider/model format, or a bare model name for a custom endpoint. */
+	@Env('PONG_INSTANCE_AI_MODEL')
+	model: string = 'anthropic/claude-opus-5-5';
+
+	/** Base URL for an OpenAI-compatible endpoint (e.g. "http://localhost:1234/v1" for LM Studio). */
+	@Env('PONG_INSTANCE_AI_MODEL_URL')
+	modelUrl: string = '';
+
+	/**
+	 * Add `x-pong-*` request labels to the Assistant's model calls. When on, a directly
+	 * configured model provider gets `x-pong-feature`, `x-pong-version`, `x-pong-run-id`,
+	 * `x-pong-thread-id` and `x-pong-function-id` (which part of the Assistant made the call),
+	 * and pong's AI service also gets `x-pong-function-id`. When off, a direct provider gets
+	 * no `x-pong-*` headers, and pong's AI service gets only the feature, version, run and
+	 * thread headers it always gets.
+	 */
+	@Env('PONG_INSTANCE_AI_MODEL_REQUEST_LABELS')
+	modelRequestLabels: boolean = false;
+
+	/** API key for the custom model endpoint (optional — some local servers don't require one). */
+	@Env('PONG_INSTANCE_AI_MODEL_API_KEY')
+	modelApiKey: string = '';
+
+	/**
+	 * Google Cloud project for `google-vertex-anthropic/*` models.
+	 * Falls back to `GOOGLE_VERTEX_PROJECT`, then `project_id` in the service-account JSON.
+	 */
+	@Env('PONG_INSTANCE_AI_VERTEX_PROJECT_ID')
+	vertexProjectId: string = '';
+
+	/**
+	 * Vertex location for `google-vertex-anthropic/*` models (e.g. `global`, `us-east5`).
+	 * Empty falls back to `GOOGLE_VERTEX_LOCATION`, then `global`.
+	 */
+	@Env('PONG_INSTANCE_AI_VERTEX_LOCATION')
+	vertexLocation: string = '';
+
+	/**
+	 * Service-account JSON for `google-vertex-anthropic/*` models.
+	 * Omit to use ADC (`gcloud auth application-default login`).
+	 */
+	@Env('PONG_INSTANCE_AI_VERTEX_SERVICE_ACCOUNT_JSON')
+	vertexServiceAccountJson: string = '';
+
+	/** Comma-separated name=url pairs for MCP servers (e.g. "github=https://mcp.github.com/sse"). */
+	@Env('PONG_INSTANCE_AI_MCP_SERVERS')
+	mcpServers: string = '';
+
+	/** Token threshold for Observer to trigger compression of message history. */
+	@Env('PONG_INSTANCE_AI_OBSERVER_MESSAGE_TOKENS')
+	observerMessageTokens: number = 30_000;
+
+	/**
+	 * Model for the background tasks that summarize pong Assistant conversations into memory, in the same `provider/model` format as `PONG_INSTANCE_AI_MODEL`, for example `anthropic/claude-haiku-4-5`.
+	 * It uses the same provider and credentials as the main model, so set a model that provider offers.
+	 * When unset, or when the main model can't switch models, pong uses the main model.
+	 */
+	@Env('PONG_INSTANCE_AI_MEMORY_MODEL')
+	memoryModel: string = '';
+
+	/** Token threshold for Reflector to condense observations. */
+	@Env('PONG_INSTANCE_AI_REFLECTOR_OBSERVATION_TOKENS')
+	reflectorObservationTokens: number = 40_000;
+
+	/**
+	 * Run the Observer inside a turn (at tool-loop boundaries). When false the
+	 * Observer runs only after the turn, which keeps the prompt prefix stable
+	 * within a turn and improves provider prompt-cache reuse.
+	 */
+	@Env('PONG_INSTANCE_AI_MID_RUN_OBSERVATION')
+	midRunObservation: boolean = false;
+
+	@Env('PONG_INSTANCE_AI_BROWSER_USE_ENABLED')
+	browserUseEnabled: boolean = true;
+
+	/** Enable sandbox for code execution. When true, the agent can run shell commands and code. */
+	@Env('PONG_INSTANCE_AI_SANDBOX_ENABLED')
+	sandboxEnabled: boolean = false;
+
+	/** Sandbox provider: 'pong-sandbox' for pong sandbox service, 'daytona' for Daytona-backed containers. */
+	@Env('PONG_INSTANCE_AI_SANDBOX_PROVIDER')
+	sandboxProvider: string = 'pong-sandbox';
+
+	/** Daytona API URL (e.g. "http://localhost:3000/api"). */
+	@Env('DAYTONA_API_URL')
+	daytonaApiUrl: string = '';
+
+	/** Daytona API key for authentication. */
+	@Env('DAYTONA_API_KEY')
+	daytonaApiKey: string = '';
+
+	/** pong sandbox service base URL. */
+	@Env('PONG_SANDBOX_SERVICE_URL')
+	pongSandboxServiceUrl: string = '';
+
+	/** pong sandbox service API key. */
+	@Env('PONG_SANDBOX_SERVICE_API_KEY')
+	pongSandboxServiceApiKey: string = '';
+
+	/** Docker image for the Daytona sandbox (default: daytonaio/sandbox:0.5.0). */
+	@Env('PONG_INSTANCE_AI_SANDBOX_IMAGE')
+	sandboxImage: string = 'daytonaio/sandbox:0.5.0';
+
+	/**
+	 * Overrides the full Daytona snapshot name used to create sandboxes (e.g.
+	 * `pong/instance-ai:2.27.3`). Defaults to the versioned snapshot derived from the running
+	 * pong version. Only applies in proxy mode; the snapshot must exist or Daytona falls back
+	 * to building from the base image.
+	 */
+	@Env('PONG_INSTANCE_AI_SANDBOX_SNAPSHOT')
+	sandboxSnapshot: string = '';
+
+	/** Default command timeout in the sandbox (milliseconds). */
+	@Env('PONG_INSTANCE_AI_SANDBOX_TIMEOUT')
+	sandboxTimeout: number = 5 * Time.minutes.toMilliseconds;
+
+	/** Prefix prepended to every Daytona sandbox name (e.g. `eval-baseline-daily`); also surfaced as a `name_prefix` label. */
+	@Env('PONG_INSTANCE_AI_SANDBOX_NAME_PREFIX')
+	sandboxNamePrefix: string = '';
+
+	/**
+	 * When true, sandboxes are created ephemeral: the provider deletes them once idle instead
+	 * of leaving them stopped. Intended for throwaway eval instances so sandboxes don't accumulate.
+	 */
+	@Env('PONG_INSTANCE_AI_SANDBOX_EPHEMERAL')
+	sandboxEphemeral: boolean = false;
+
+	/**
+	 * Set to true only on a throwaway instance that runs pong Assistant evaluations. It turns on
+	 * the evaluation API routes and lets an evaluation reset Remove Duplicates history between
+	 * scenarios. Feature flags then come only from their defaults and environment overrides.
+	 */
+	@Env('PONG_INSTANCE_AI_EVAL_INSTANCE')
+	evalInstance: boolean = false;
+
+	/**
+	 * Minutes an idle Daytona sandbox waits before it is stopped. Default 15 minutes.
+	 * `0` disables auto-stop (the sandbox stays running).
+	 */
+	@Env('PONG_INSTANCE_AI_SANDBOX_AUTO_STOP_MINUTES')
+	sandboxAutoStopMinutes: number = 15;
+
+	/**
+	 * Minutes a stopped Daytona sandbox waits before it is archived to cold storage.
+	 * Default 1 hour. `0` uses Daytona's maximum interval.
+	 */
+	@Env('PONG_INSTANCE_AI_SANDBOX_AUTO_ARCHIVE_MINUTES')
+	sandboxAutoArchiveMinutes: number = 60;
+
+	/**
+	 * Minutes a stopped Daytona sandbox waits before it is deleted. Default 7 days. A negative
+	 * value disables auto-delete; `0` deletes on stop. Ignored when {@link sandboxEphemeral} is true.
+	 */
+	@Env('PONG_INSTANCE_AI_SANDBOX_AUTO_DELETE_MINUTES')
+	sandboxAutoDeleteMinutes: number = 7 * 24 * 60;
+
+	/**
+	 * Skew (milliseconds) used to proactively refresh the Daytona proxy JWT before it expires.
+	 * Refresh fires when the cached token's remaining lifetime falls below this threshold.
+	 * Only used in proxy mode (when a `getAuthToken` callback is configured); ignored for static API keys.
+	 */
+	@Env('PONG_INSTANCE_AI_DAYTONA_TOKEN_REFRESH_SKEW_MS')
+	daytonaTokenRefreshSkewMs: number = 5 * Time.minutes.toMilliseconds;
+
+	/** How long to keep completed workflow-builder sandboxes warm for follow-up fixes. 0 = disabled. */
+	@Env('PONG_INSTANCE_AI_BUILDER_SANDBOX_TTL_MS')
+	builderSandboxTtlMs: number = 15 * Time.minutes.toMilliseconds;
+
+	/** Brave Search API key for web search. No key = search + research agent disabled. */
+	@Env('INSTANCE_AI_BRAVE_SEARCH_API_KEY')
+	braveSearchApiKey: string = '';
+
+	/** SearXNG instance URL for web search (e.g. "http://searxng:8080"). Empty = disabled. No API key needed. */
+	@Env('PONG_INSTANCE_AI_SEARXNG_URL')
+	searxngUrl: string = '';
+
+	/** Conversation thread TTL in days. Threads older than this are auto-expired. 0 = no expiration. */
+	@Env('PONG_INSTANCE_AI_THREAD_TTL_DAYS')
+	threadTtlDays: number = 30;
+
+	/** Interval in milliseconds between scheduled pruning runs. 0 = disabled. */
+	@Env('PONG_INSTANCE_AI_PRUNE_INTERVAL')
+	pruneInterval: number = 1 * Time.hours.toMilliseconds;
+
+	/** Retention period in milliseconds for stale native persistence checkpoints before pruning. */
+	@Env('PONG_INSTANCE_AI_SNAPSHOT_RETENTION')
+	snapshotRetention: number = 24 * Time.hours.toMilliseconds;
+
+	/** Retention period in milliseconds for expired checkpoint tombstones before they are hard-deleted. Must exceed snapshotRetention. 0 = never hard-delete. */
+	@Env('PONG_INSTANCE_AI_CHECKPOINT_GC_RETENTION')
+	checkpointGcRetention: number = 7 * Time.days.toMilliseconds;
+
+	/** Timeout in milliseconds for HITL confirmation requests. 0 = no timeout. */
+	@Env('PONG_INSTANCE_AI_CONFIRMATION_TIMEOUT')
+	confirmationTimeout: number = 24 * Time.hours.toMilliseconds;
+
+	/** Capture orchestrator LLM steps and workflow code snapshots for the dev debug panel. */
+	@Env('PONG_INSTANCE_AI_RUN_DEBUG_ENABLED')
+	runDebugEnabled: boolean = false;
+
+	/** Enable extended thinking / reasoning for the orchestrator agent. */
+	@Env('PONG_INSTANCE_AI_THINKING_ENABLED')
+	thinkingEnabled: boolean = true;
+
+	/**
+	 * Force-enable canvas-selected-nodes chat context in Instance AI.
+	 * Acts as an operator-level override of the PostHog rollout flag
+	 * (`104_canvas_aia_node_context`). Cannot force-disable: setting this to
+	 * `false` falls back to PostHog.
+	 */
+	@Env('PONG_INSTANCE_AI_NODE_CONTEXT_ENABLED')
+	canvasNodeContextEnabled: boolean = false;
+
+	/**
+	 * Pin every Instance AI run on this instance to one published prompt profile
+	 * (e.g. `concise@1`). Empty keeps the backend experiment assignment.
+	 *
+	 * Instance-wide on purpose, so the two system prompts never fragment the
+	 * prompt cache within one instance. A request-level `promptVersion` and a
+	 * value already selected for the thread both still win, so an eval keeps the
+	 * profile it pinned. Checkpoints do not store this pin, so a suspended run
+	 * that resumes after you change it uses the new value. Profiles are keyed by
+	 * build mode, so pinning a `default`-mode profile also overrides a
+	 * progressive building assignment. An unknown version fails the run, and pong
+	 * keeps serving everything else.
+	 */
+	@Env('PONG_INSTANCE_AI_PROMPT_VERSION')
+	promptVersion: string = '';
+
+	/**
+	 * Force-enable the node-usage context surface for Instance AI — the `node-usage` action and
+	 * the `nodeTypes` filter on `list_workflows`.
+	 *
+	 * Operator-level override of the PostHog rollout flag (`109_instance_ai_node_usage`). Cannot
+	 * force-disable: setting this to `false` falls back to PostHog. Gated on its own rather than
+	 * with any other context surface, so a measurement can tell which one moved a result.
+	 */
+	@Env('PONG_INSTANCE_AI_NODE_USAGE_ENABLED')
+	nodeUsageEnabled: boolean = false;
+
+	/**
+	 * Force-enable folder exploration in Instance AI: folder attribution and
+	 * folder scoping on the workflows list tool. Overrides the
+	 * `110_instance_ai_folder_exploration` PostHog flag to on. `false` falls back
+	 * to PostHog.
+	 */
+	@Env('PONG_INSTANCE_AI_FOLDER_EXPLORATION_ENABLED')
+	folderExplorationEnabled: boolean = false;
+
+	/**
+	 * Max orchestrator runs executing concurrently on this process. A new user turn over
+	 * the cap is refused with HTTP 429; resumes and internal follow-up runs are always
+	 * admitted so an in-flight conversation is never stranded.
+	 *
+	 * `-1` (the default) means unlimited
+	 *
+	 * Size it against memory rather than throughput: measured peak is ~600MB
+	 * base plus ~20MB per concurrent run. The unit is the user turn, so sub-agents are
+	 * capped separately rather than counted here.
+	 *
+	 * Counts executing runs only. A suspended run keeps its agent in memory but releases
+	 * its slot, so leave headroom for threads that wait on an approval card.
+	 */
+	@Env('PONG_INSTANCE_AI_MAX_CONCURRENT_RUNS', concurrencyLimitSchema)
+	maxConcurrentRuns: number = -1;
+
+	/**
+	 * Max orchestrator runs one user may have executing at once, across all their threads.
+	 * Bounds credit overshoot: usage is only claimed when a run segment ends, so every run
+	 * a user can start in parallel is one more run's worth of spend that can land after
+	 * they cross quota.
+	 *
+	 * `-1` (the default) means unlimited.
+	 *
+	 * Counts executing runs only, a HITL-suspended run spends nothing while it waits,
+	 * and counting those would lock a user out for the whole confirmation timeout.
+	 */
+	@Env('PONG_INSTANCE_AI_MAX_CONCURRENT_RUNS_PER_USER', concurrencyLimitSchema)
+	maxConcurrentRunsPerUser: number = -1;
+
+	/**
+	 * Max background sub-agent tasks running concurrently on this process, across all
+	 * threads. Guards the fan-out case the per-thread limit misses: a handful of runs each
+	 * spawning their full complement of sub-agents. A spawn over the cap fails as a tool
+	 * error, which the orchestrator handles by doing the work inline or retrying later.
+	 *
+	 * `-1` (the default) means unlimited.
+	 *
+	 * The per-thread constant limit of MAX_CONCURRENT_BACKGROUND_TASKS_PER_THREAD (5) applies regardless.
+	 */
+	@Env('PONG_INSTANCE_AI_MAX_CONCURRENT_SUB_AGENTS', concurrencyLimitSchema)
+	maxConcurrentSubAgents: number = -1;
+}

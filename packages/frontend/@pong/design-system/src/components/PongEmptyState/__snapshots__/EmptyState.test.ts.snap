@@ -1,0 +1,37 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`PongEmptyState > should render correctly with emoji 1`] = `
+"<div class="pong-empty-state container" data-test-id="empty-state">
+  <div class="icon"><span>😿</span></div>
+  <div class="text">
+    <div class="heading">
+      <pong-heading-stub align="center" tag="span" bold="false" size="xlarge"></pong-heading-stub>
+    </div>
+    <div class="description">
+      <pong-text-stub color="text-base" bold="false" size="medium" compact="false" tag="span"></pong-text-stub>
+    </div>
+  </div>
+  <pong-tooltip-stub aschild="false" placement="top" disabled="true" showafter="0" visible="false" enterable="true" teleported="true" offset="8" buttons="" justifybuttons="flex-end" avoidcollisions="true"></pong-tooltip-stub>
+  <!--v-if-->
+  <!--v-if-->
+</div>"
+`;
+
+exports[`PongEmptyState > should render correctly with icon 1`] = `
+"<div class="pong-empty-state container" data-test-id="empty-state">
+  <div class="icon">
+    <pong-icon-stub icon="plus" strokewidth="1.5" size="40" spin="false" color="foreground-xdark"></pong-icon-stub>
+  </div>
+  <div class="text">
+    <div class="heading">
+      <pong-heading-stub align="center" tag="span" bold="false" size="xlarge"></pong-heading-stub>
+    </div>
+    <div class="description">
+      <pong-text-stub color="text-base" bold="false" size="medium" compact="false" tag="span"></pong-text-stub>
+    </div>
+  </div>
+  <pong-tooltip-stub aschild="false" placement="top" disabled="true" showafter="0" visible="false" enterable="true" teleported="true" offset="8" buttons="" justifybuttons="flex-end" avoidcollisions="true"></pong-tooltip-stub>
+  <!--v-if-->
+  <!--v-if-->
+</div>"
+`;

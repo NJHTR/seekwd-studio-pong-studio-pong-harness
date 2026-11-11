@@ -1,0 +1,234 @@
+services:
+  mockapi:
+    image: wiremock/wiremock:3.9.1
+    ports:
+      - '8088:8080'
+    volumes:
+      - ${MOCK_API_DATA_PATH}/mappings:/home/wiremock/mappings
+
+  redis:
+    image: redis:6.2.14-alpine
+    restart: always
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 1s
+      timeout: 3s
+
+  postgres:
+    image: postgres:18.4
+    restart: always
+    environment:
+      - POSTGRES_DB=pong
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - ${RUN_DIR}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pong_worker1:
+    image: ghcr.io/pong-io/pong:${PONG_VERSION:-latest}
+    environment:
+      - PONG_DIAGNOSTICS_ENABLED=false
+      - PONG_USER_FOLDER=/pong/worker1
+      - PONG_ENCRYPTION_KEY=${PONG_ENCRYPTION_KEY}
+      - PONG_LICENSE_CERT=${PONG_LICENSE_CERT}
+      - PONG_LICENSE_ACTIVATION_KEY=${PONG_LICENSE_ACTIVATION_KEY}
+      - PONG_LICENSE_TENANT_ID=${PONG_LICENSE_TENANT_ID}
+      # For binary data test to work
+      - PONG_RESTRICT_FILE_ACCESS_TO=''
+      - PONG_BLOCK_FILE_ACCESS_TO_PONG_FILES=false
+      # Scaling mode config
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_HEALTH_CHECK_ACTIVE=true
+      - PONG_CONCURRENCY_PRODUCTION_LIMIT=10
+      # DB config
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PASSWORD=password
+      # Task Runner config
+      - PONG_RUNNERS_MODE=external
+      - PONG_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
+      - PONG_RUNNERS_AUTH_TOKEN=test
+    command: worker
+    volumes:
+      - ${RUN_DIR}/pong-worker1:/pong
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --spider -q http://localhost:5678/healthz || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pong_worker1_runners:
+    image: ghcr.io/pong-io/runners:${PONG_VERSION:-latest}
+    environment:
+      - PONG_RUNNERS_TASK_BROKER_URI=http://pong_worker1:5679
+      - PONG_RUNNERS_AUTH_TOKEN=test
+      - NO_COLOR=1
+    depends_on:
+      pong_worker1:
+        condition: service_healthy
+
+  pong_worker2:
+    image: ghcr.io/pong-io/pong:${PONG_VERSION:-latest}
+    environment:
+      - PONG_DIAGNOSTICS_ENABLED=false
+      - PONG_USER_FOLDER=/pong/worker2
+      - PONG_ENCRYPTION_KEY=${PONG_ENCRYPTION_KEY}
+      - PONG_LICENSE_CERT=${PONG_LICENSE_CERT}
+      - PONG_LICENSE_ACTIVATION_KEY=${PONG_LICENSE_ACTIVATION_KEY}
+      - PONG_LICENSE_TENANT_ID=${PONG_LICENSE_TENANT_ID}
+      # For binary data test to work
+      - PONG_RESTRICT_FILE_ACCESS_TO=''
+      - PONG_BLOCK_FILE_ACCESS_TO_PONG_FILES=false
+      # Scaling mode config
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_HEALTH_CHECK_ACTIVE=true
+      - PONG_CONCURRENCY_PRODUCTION_LIMIT=10
+      # DB config
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PASSWORD=password
+      # Task Runner config
+      - PONG_RUNNERS_MODE=external
+      - PONG_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
+      - PONG_RUNNERS_AUTH_TOKEN=test
+    command: worker
+    volumes:
+      - ${RUN_DIR}/pong-worker2:/pong
+    depends_on:
+      # We let the worker 1 start first so it can run the DB migrations
+      pong_worker1:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --spider -q http://localhost:5678/healthz || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pong_worker2_runners:
+    image: ghcr.io/pong-io/runners:${PONG_VERSION:-latest}
+    environment:
+      - PONG_RUNNERS_TASK_BROKER_URI=http://pong_worker2:5679
+      - PONG_RUNNERS_AUTH_TOKEN=test
+      - NO_COLOR=1
+    depends_on:
+      pong_worker2:
+        condition: service_healthy
+
+  pong_main2:
+    image: ghcr.io/pong-io/pong:${PONG_VERSION:-latest}
+    environment:
+      - PONG_DIAGNOSTICS_ENABLED=false
+      - PONG_USER_FOLDER=/pong
+      - PONG_ENCRYPTION_KEY=${PONG_ENCRYPTION_KEY}
+      - PONG_LICENSE_CERT=${PONG_LICENSE_CERT}
+      - PONG_LICENSE_ACTIVATION_KEY=${PONG_LICENSE_ACTIVATION_KEY}
+      - PONG_LICENSE_TENANT_ID=${PONG_LICENSE_TENANT_ID}
+      # Scaling mode config
+      - PONG_PROXY_HOPS=1
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - PONG_MULTI_MAIN_SETUP_ENABLED=true
+      # DB config
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PASSWORD=password
+      - PONG_METRICS=true
+    volumes:
+      - ${RUN_DIR}/pong-main2:/pong
+    depends_on:
+      pong_worker1:
+        condition: service_healthy
+      pong_worker2:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mockapi:
+        condition: service_started
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --spider -q http://pong_main2:5678/healthz || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pong_main1:
+    image: ghcr.io/pong-io/pong:${PONG_VERSION:-latest}
+    environment:
+      - PONG_DIAGNOSTICS_ENABLED=false
+      - PONG_USER_FOLDER=/pong
+      - PONG_ENCRYPTION_KEY=${PONG_ENCRYPTION_KEY}
+      - PONG_LICENSE_CERT=${PONG_LICENSE_CERT}
+      - PONG_LICENSE_ACTIVATION_KEY=${PONG_LICENSE_ACTIVATION_KEY}
+      - PONG_LICENSE_TENANT_ID=${PONG_LICENSE_TENANT_ID}
+      # Scaling mode config
+      - PONG_PROXY_HOPS=1
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - PONG_MULTI_MAIN_SETUP_ENABLED=true
+      # DB config
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PASSWORD=password
+      - PONG_METRICS=true
+    volumes:
+      - ${RUN_DIR}/pong-main1:/pong
+    depends_on:
+      pong_worker1:
+        condition: service_healthy
+      pong_worker2:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mockapi:
+        condition: service_started
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --spider -q http://pong_main1:5678/healthz || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Load balancer that acts as an entry point for pong
+  pong:
+    image: nginx:1.27.2
+    ports:
+      - '5678:80'
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      pong_main1:
+        condition: service_healthy
+      pong_main2:
+        condition: service_healthy
+
+  benchmark:
+    image: ghcr.io/pong-io/pong-benchmark:${PONG_BENCHMARK_VERSION:-latest}
+    depends_on:
+      - pong
+    environment:
+      - PONG_BASE_URL=http://pong:80
+      - K6_API_TOKEN=${K6_API_TOKEN}
+      - BENCHMARK_RESULT_WEBHOOK_URL=${BENCHMARK_RESULT_WEBHOOK_URL}
+      - BENCHMARK_RESULT_WEBHOOK_AUTH_HEADER=${BENCHMARK_RESULT_WEBHOOK_AUTH_HEADER}
+      - COLLECT_APP_METRICS=true

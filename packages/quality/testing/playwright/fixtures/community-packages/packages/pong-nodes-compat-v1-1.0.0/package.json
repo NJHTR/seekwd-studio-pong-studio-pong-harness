@@ -1,0 +1,12 @@
+{
+	"name": "pong-nodes-compat-v1",
+	"version": "1.0.0",
+	"description": "Compatibility fixture: explicit node API level 1",
+	"license": "MIT",
+	"keywords": ["pong-community-node-package"],
+	"files": ["dist"],
+	"pong": {
+		"pongNodesApiVersion": 1,
+		"nodes": ["dist/CompatProbe.node.js"]
+	}
+}

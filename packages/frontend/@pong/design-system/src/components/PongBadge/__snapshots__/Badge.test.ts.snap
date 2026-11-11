@@ -1,0 +1,18 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`components > PongBadge > props > should render a button when clickable 1`] = `
+"<button type="button" class="pong-badge badge outline xsmall clickable">
+  <!--v-if--><span class="pong-text step-2xs bold label label">Clickable badge</span>
+  <!--v-if-->
+</button>"
+`;
+
+exports[`components > PongBadge > props > should render the selected variant and size 1`] = `
+"<span class="pong-badge badge secondary medium"><!--v-if--><span class="pong-text step-xs bold label label">Secondary badge</span>
+<!--v-if--></span>"
+`;
+
+exports[`components > PongBadge > props > should render with default values correctly 1`] = `
+"<span class="pong-badge badge outline xsmall"><!--v-if--><span class="pong-text step-2xs bold label label">Default badge</span>
+<!--v-if--></span>"
+`;

@@ -1,0 +1,80 @@
+{
+  "name": "@pong/backend-services",
+  "version": "1.8.0",
+  "scripts": {
+    "clean": "rimraf dist .turbo",
+    "dev": "pnpm watch",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "build:unchecked": "tsc -p tsconfig.build.json --noCheck",
+    "format": "biome format --write .",
+    "format:check": "biome ci .",
+    "lint": "oxlint --quiet",
+    "lint:fix": "oxlint --fix",
+    "watch": "tsc -p tsconfig.build.json --watch",
+    "test": "vitest run --passWithNoTests",
+    "test:unit": "vitest run --passWithNoTests",
+    "test:dev": "vitest --silent=false"
+  },
+  "main": "dist/index.js",
+  "module": "src/index.ts",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "module": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./auth": {
+      "types": "./dist/auth.d.ts",
+      "module": "./src/auth.ts",
+      "default": "./dist/auth.js"
+    }
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "dependencies": {
+    "@pong/api-types": "workspace:*",
+    "@pong/backend-common": "workspace:*",
+    "@pong/backend-network": "workspace:*",
+    "@pong/config": "workspace:*",
+    "@pong/constants": "workspace:*",
+    "@pong/db": "workspace:*",
+    "@pong/decorators": "workspace:*",
+    "@pong/di": "workspace:*",
+    "@pong/errors": "workspace:*",
+    "@pong/inbound-auth": "workspace:*",
+    "@pong/permissions": "workspace:*",
+    "@pong/utils": "workspace:*",
+    "cache-manager": "catalog:",
+    "ioredis": "5.3.2",
+    "jose": "^6.2.9",
+    "jsonwebtoken": "catalog:",
+    "lodash": "catalog:",
+    "pong-core": "workspace:*",
+    "pong-workflow": "workspace:*"
+  },
+  "peerDependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@pong/backend-test-utils": "workspace:*",
+    "@pong/eslint-config": "workspace:*",
+    "@pong/oxlint-config": "workspace:*",
+    "@pong/typescript-config": "workspace:*",
+    "@pong/vitest-config": "workspace:*",
+    "@types/jsonwebtoken": "catalog:",
+    "@types/lodash": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "catalog:",
+    "ioredis-mock": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:typescript",
+    "vitest": "catalog:",
+    "vitest-mock-extended": "catalog:",
+    "zod": "catalog:"
+  },
+  "license": "UNLICENSED"
+}

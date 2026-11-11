@@ -1,0 +1,30 @@
+{
+	"node": "pong-nodes-base.executeCommand",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"details": "Execute command allows you to run terminal commands on the computer/server hosting your pong instance. Useful for executing a shell script or interacting with your pong instance programmatically via the CLI.",
+	"categories": ["Development", "Core Nodes"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"generic": [
+			{
+				"label": "How uProc scraped a multi-page website with a low-code workflow",
+				"icon": " 🕸️",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			},
+			{
+				"label": "Why this Product Manager loves workflow automation with pong",
+				"icon": "🧠",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": ["Shell", "Command", "OS", "Bash"],
+	"subcategories": {
+		"Core Nodes": ["Helpers"]
+	}
+}

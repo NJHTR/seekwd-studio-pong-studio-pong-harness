@@ -1,0 +1,301 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`FormBox > should render the component 1`] = `
+<div>
+  <div
+    class="pong-form-box container"
+  >
+    <div
+      class="heading"
+    >
+      <span
+        class="pong-heading size-xlarge regular"
+      >
+        
+        Title
+        
+      </span>
+    </div>
+    <div
+      class="inputsContainer"
+    >
+      <div>
+        
+        <div
+          class="grid"
+        >
+          
+          <div
+            class=""
+          >
+            <div
+              capitalize="true"
+              class="container"
+              data-test-id="name"
+            >
+              <div
+                class="labelRow"
+              >
+                <label
+                  class="pong-input-label inputLabel heading small"
+                  for="name"
+                >
+                  <div
+                    class="main-content"
+                  >
+                    <div
+                      class="title"
+                    >
+                      <span
+                        class="pong-text size-small bold"
+                      >
+                        
+                        Name 
+                        <span
+                          class="pong-text danger size-small bold"
+                        >
+                          
+                          *
+                          
+                        </span>
+                        
+                      </span>
+                    </div>
+                    <!--v-if-->
+                  </div>
+                  <div
+                    class="trailing-content"
+                  >
+                    <!--v-if-->
+                    <!--v-if-->
+                    <!--v-if-->
+                  </div>
+                </label>
+                <!--v-if-->
+              </div>
+              
+              <div
+                class=""
+              >
+                <div
+                  class="pong-input inputContainer small"
+                >
+                  <!-- Prepend slot (outside input container, before) -->
+                  <!--v-if-->
+                  <!-- Input wrapper (holds border, contains prefix/input/suffix) -->
+                  <div
+                    class="pong-input__wrapper inputWrapper"
+                  >
+                    <!-- Prefix slot -->
+                    <!--v-if-->
+                    <!-- Input element -->
+                    <input
+                      autocomplete="email"
+                      class="input"
+                      id="name"
+                      name="name"
+                      placeholder=""
+                      type="text"
+                      value=""
+                    />
+                    <!-- Suffix slot -->
+                    <!--v-if-->
+                    <!-- Clear button -->
+                    <!--v-if-->
+                  </div>
+                  <!-- Append slot (outside input container, after) -->
+                  <!--v-if-->
+                </div>
+              </div>
+              <!--v-if-->
+              
+            </div>
+          </div>
+          <div
+            class=""
+          >
+            <div
+              capitalize="true"
+              class="container"
+              data-test-id="email"
+            >
+              <div
+                class="labelRow"
+              >
+                <label
+                  class="pong-input-label inputLabel heading medium"
+                  for="email"
+                >
+                  <div
+                    class="main-content"
+                  >
+                    <div
+                      class="title"
+                    >
+                      <span
+                        class="pong-text size-medium bold"
+                      >
+                        
+                        Email 
+                        <span
+                          class="pong-text danger size-medium bold"
+                        >
+                          
+                          *
+                          
+                        </span>
+                        
+                      </span>
+                    </div>
+                    <!--v-if-->
+                  </div>
+                  <div
+                    class="trailing-content"
+                  >
+                    <!--v-if-->
+                    <!--v-if-->
+                    <!--v-if-->
+                  </div>
+                </label>
+                <!--v-if-->
+              </div>
+              
+              <div
+                class=""
+              >
+                <div
+                  class="pong-input inputContainer medium"
+                >
+                  <!-- Prepend slot (outside input container, before) -->
+                  <!--v-if-->
+                  <!-- Input wrapper (holds border, contains prefix/input/suffix) -->
+                  <div
+                    class="pong-input__wrapper inputWrapper"
+                  >
+                    <!-- Prefix slot -->
+                    <!--v-if-->
+                    <!-- Input element -->
+                    <input
+                      autocomplete="email"
+                      class="input"
+                      id="email"
+                      name="email"
+                      placeholder=""
+                      type="email"
+                      value=""
+                    />
+                    <!-- Suffix slot -->
+                    <!--v-if-->
+                    <!-- Clear button -->
+                    <!--v-if-->
+                  </div>
+                  <!-- Append slot (outside input container, after) -->
+                  <!--v-if-->
+                </div>
+              </div>
+              <!--v-if-->
+              
+            </div>
+          </div>
+          <div
+            class=""
+          >
+            <div
+              capitalize="true"
+              class="container"
+              data-test-id="password"
+            >
+              <div
+                class="labelRow"
+              >
+                <label
+                  class="pong-input-label inputLabel heading medium"
+                  for="password"
+                >
+                  <div
+                    class="main-content"
+                  >
+                    <div
+                      class="title"
+                    >
+                      <span
+                        class="pong-text size-medium bold"
+                      >
+                        
+                        Password 
+                        <span
+                          class="pong-text danger size-medium bold"
+                        >
+                          
+                          *
+                          
+                        </span>
+                        
+                      </span>
+                    </div>
+                    <!--v-if-->
+                  </div>
+                  <div
+                    class="trailing-content"
+                  >
+                    <!--v-if-->
+                    <!--v-if-->
+                    <!--v-if-->
+                  </div>
+                </label>
+                <!--v-if-->
+              </div>
+              
+              <div
+                class=""
+              >
+                <div
+                  class="pong-input inputContainer large ph-no-capture"
+                >
+                  <!-- Prepend slot (outside input container, before) -->
+                  <!--v-if-->
+                  <!-- Input wrapper (holds border, contains prefix/input/suffix) -->
+                  <div
+                    class="pong-input__wrapper inputWrapper"
+                  >
+                    <!-- Prefix slot -->
+                    <!--v-if-->
+                    <!-- Input element -->
+                    <input
+                      autocomplete="current-password"
+                      class="input"
+                      id="password"
+                      name="password"
+                      placeholder=""
+                      type="password"
+                      value=""
+                    />
+                    <!-- Suffix slot -->
+                    <!--v-if-->
+                    <!-- Clear button -->
+                    <!--v-if-->
+                  </div>
+                  <!-- Append slot (outside input container, after) -->
+                  <!--v-if-->
+                </div>
+              </div>
+              <!--v-if-->
+              
+            </div>
+          </div>
+          
+        </div>
+        
+      </div>
+    </div>
+    <!--v-if-->
+    <div
+      class="actionContainer"
+    >
+      <!--v-if-->
+    </div>
+    
+    
+  </div>
+</div>
+`;

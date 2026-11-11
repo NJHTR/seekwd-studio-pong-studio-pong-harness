@@ -1,0 +1,23 @@
+{
+	"node": "pong-nodes-base.sseTrigger",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Development", "Core Nodes"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		],
+		"generic": [
+			{
+				"label": "What are APIs and how to use them with no code",
+				"icon": " 🪢",
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"subcategories": {
+		"Core Nodes": ["Other Trigger Nodes"]
+	}
+}

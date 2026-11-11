@@ -1,0 +1,64 @@
+{
+  "name": "@pong/backend-module-execution-ledger",
+  "version": "0.2.0",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./module": {
+      "types": "./dist/execution-ledger.module.d.ts",
+      "import": "./dist/execution-ledger.module.js",
+      "require": "./dist/execution-ledger.module.js"
+    }
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "clean": "rimraf dist .turbo",
+    "dev": "pnpm watch",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "build:unchecked": "tsc -p tsconfig.build.json --noCheck",
+    "format": "biome format --write .",
+    "format:check": "biome ci .",
+    "lint": "oxlint --type-aware . --quiet",
+    "lint:fix": "oxlint --type-aware . --fix",
+    "watch": "tsc -p tsconfig.build.json --watch",
+    "test": "vitest run",
+    "test:postgres": "PONG_LOG_LEVEL=silent vitest run --config vitest.config.postgres.ts",
+    "test:unit": "vitest run",
+    "test:dev": "vitest --silent=false"
+  },
+  "dependencies": {
+    "@pong/backend-common": "workspace:*",
+    "@pong/config": "workspace:*",
+    "@pong/constants": "workspace:*",
+    "@pong/db": "workspace:*",
+    "@pong/decorators": "workspace:*",
+    "@pong/di": "workspace:*",
+    "@pong/typeorm": "workspace:*",
+    "@pong/utils": "workspace:*",
+    "pong-core": "workspace:*",
+    "pong-workflow": "workspace:*"
+  },
+  "devDependencies": {
+    "@pong/backend-test-utils": "workspace:*",
+    "@pong/oxlint-config": "workspace:*",
+    "@pong/typescript-config": "workspace:*",
+    "@pong/vitest-config": "workspace:*",
+    "pong-containers": "workspace:*",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:typescript",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vitest-mock-extended": "catalog:"
+  },
+  "license": "UNLICENSED"
+}

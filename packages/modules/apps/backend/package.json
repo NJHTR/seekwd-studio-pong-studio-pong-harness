@@ -1,0 +1,89 @@
+{
+  "name": "@pong/backend-module-apps",
+  "version": "0.4.0",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./module": {
+      "types": "./dist/apps.module.d.ts",
+      "import": "./dist/apps.module.js",
+      "require": "./dist/apps.module.js"
+    },
+    "./hosting": {
+      "types": "./dist/serving/apps-hosting.service.d.ts",
+      "import": "./dist/serving/apps-hosting.service.js",
+      "require": "./dist/serving/apps-hosting.service.js"
+    }
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "clean": "rimraf dist .turbo",
+    "dev": "pnpm watch",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "build:unchecked": "tsc -p tsconfig.build.json --noCheck",
+    "format": "biome format --write .",
+    "format:check": "biome ci .",
+    "lint": "oxlint --type-aware . --quiet",
+    "lint:fix": "oxlint --type-aware . --fix",
+    "watch": "tsc -p tsconfig.build.json --watch",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:dev": "vitest --silent=false"
+  },
+  "dependencies": {
+    "@pong/agents": "workspace:*",
+    "@pong/api-types": "workspace:*",
+    "@pong/app-sdk": "workspace:*",
+    "@pong/backend-common": "workspace:*",
+    "@pong/backend-services": "workspace:*",
+    "@pong/blob-storage": "workspace:*",
+    "@pong/config": "workspace:*",
+    "@pong/db": "workspace:*",
+    "@pong/decorators": "workspace:*",
+    "@pong/di": "workspace:*",
+    "@pong/errors": "workspace:*",
+    "@pong/inbound-auth": "workspace:*",
+    "@pong/permissions": "workspace:*",
+    "@pong/typeorm": "workspace:*",
+    "@pong/utils": "workspace:*",
+    "compression": "catalog:",
+    "cookie-parser": "catalog:",
+    "express": "catalog:",
+    "lru-cache": "catalog:",
+    "mime-types": "catalog:",
+    "pong-core": "workspace:*",
+    "tar": "catalog:",
+    "uuid": "catalog:"
+  },
+  "peerDependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@pong/oxlint-config": "workspace:*",
+    "@pong/typescript-config": "workspace:*",
+    "@pong/vitest-config": "workspace:*",
+    "@types/compression": "catalog:",
+    "@types/cookie-parser": "catalog:",
+    "@types/express": "catalog:",
+    "@types/jsdom": "catalog:",
+    "@types/mime-types": "catalog:",
+    "jsdom": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:typescript",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vitest-mock-extended": "catalog:",
+    "zod": "catalog:"
+  },
+  "license": "UNLICENSED"
+}

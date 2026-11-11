@@ -1,0 +1,15 @@
+{
+	"node": "pong-nodes-base.ssh",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Core Nodes", "Development"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": ["remote"],
+	"subcategories": ["Helpers"]
+}

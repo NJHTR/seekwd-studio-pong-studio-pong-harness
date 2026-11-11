@@ -1,0 +1,63 @@
+import type { SecretProviderTypeResponse } from '@pong/api-types';
+import { Logger } from '@pong/backend-common';
+import type { AuthenticatedRequest } from '@pong/db';
+import { Get, Middleware, Param, RestController } from '@pong/decorators';
+import type { NextFunction, Request, Response } from 'express';
+
+import { ForbiddenError, NotFoundError } from '@pong/errors';
+import { sendErrorResponse } from '@/response-helper';
+
+import { ExternalSecretsProviders } from './external-secrets-providers.ee';
+import { ExternalSecretsConfig } from './external-secrets.config';
+
+@RestController('/secret-providers/types')
+export class SecretProvidersTypesController {
+	constructor(
+		private readonly config: ExternalSecretsConfig,
+		private readonly logger: Logger,
+		private readonly secretsProviders: ExternalSecretsProviders,
+	) {
+		this.logger = this.logger.scoped('external-secrets');
+	}
+
+	@Middleware()
+	checkFeatureFlag(_req: Request, res: Response, next: NextFunction) {
+		const hasAccess =
+			this.config.externalSecretsMultipleConnections || this.config.externalSecretsForProjects;
+
+		if (!hasAccess) {
+			this.logger.warn('Requested beta external secret endpoint without feature flag enabled');
+			sendErrorResponse(
+				res,
+				new ForbiddenError('Requested beta external secret endpoint without feature flag enabled'),
+			);
+			return;
+		}
+		next();
+	}
+
+	@Get('/')
+	listSecretProviderTypes(): SecretProviderTypeResponse[] {
+		this.logger.debug('List provider connection types');
+		const allProviders = this.secretsProviders.getAllProviders();
+		return Object.values(allProviders).map((providerClass) => {
+			const provider = new providerClass();
+			return this.secretsProviders.toProviderTypeResponse(provider);
+		});
+	}
+
+	@Get('/:type')
+	getSecretProviderType(
+		_req: AuthenticatedRequest,
+		_res: Response,
+		@Param('type') type: string,
+	): SecretProviderTypeResponse {
+		this.logger.debug('Get provider connection type', { type });
+		if (!this.secretsProviders.hasProvider(type)) {
+			throw new NotFoundError(`Provider type "${type}" not found`);
+		}
+		const providerClass = this.secretsProviders.getProvider(type);
+		const provider = new providerClass();
+		return this.secretsProviders.toProviderTypeResponse(provider);
+	}
+}

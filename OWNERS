@@ -1,0 +1,452 @@
+# pong OWNERS
+#
+# Format: <pattern> <@org/team> [required]
+#
+# Examples:
+#   packages/foo/        @pong-io/team-a            advisory reviewer recommendation
+#   packages/foo/bar.ts  @pong-io/team-b required   team approval blocks merge
+#
+# Last-match-wins: specific rules MUST come AFTER general rules.
+#
+# The `required` option makes team approval mandatory for non-test files: a
+# member of the team must approve the PR before merge. This is enforced by the
+# "Required Reviews" commit status (ci-owners-required-reviews.yml).
+# All other entries are advisory (reviewer recommendations and opt-in
+# reviewer auto-assignment).
+#
+# Validated by ci-owners-validation.yml (`node .github/scripts/owners/owners.mjs --check`).
+
+# Default catch-all (ensures every file gets at least one reviewer).
+# Developer Platform finds the right owner for unassigned files.
+*                                                       @pong-io/qa-dx
+
+# Core Execution
+
+packages/core/                                          @pong-io/core-execution
+packages/workflow/                                      @pong-io/core-execution
+packages/workflow/stryker.config.mjs                    @pong-io/qa-dx
+packages/@pong/db/                                       @pong-io/core-execution
+packages/@pong/typeorm/                                  @pong-io/core-execution
+packages/@pong/blob-storage/                             @pong-io/core-execution
+packages/@pong/engine/                                   @pong-io/core-execution
+packages/@pong/task-runner/                              @pong-io/core-execution
+packages/@pong/task-runner-python/                       @pong-io/core-execution
+packages/@pong/expression-runtime/                       @pong-io/core-execution
+packages/@pong/tournament/                               @pong-io/core-execution
+
+# Core Application
+
+packages/@pong/scheduler/                                @pong-io/core-application
+packages/@pong/config/                                   @pong-io/core-application
+packages/@pong/backend-common/                           @pong-io/core-application
+packages/@pong/backend-network/                          @pong-io/core-application
+packages/@pong/backend-services/                         @pong-io/core-application
+packages/@pong/backend-services/src/services/role.service.ts       @pong-io/iam
+packages/@pong/backend-services/src/services/role-cache.service.ts @pong-io/iam
+packages/@pong/backend-services/src/services/jwt.service.ts @pong-io/iam
+packages/@pong/backend-test-utils/                       @pong-io/core-application
+packages/@pong/di/                                       @pong-io/core-application
+packages/@pong/errors/                                   @pong-io/core-application
+packages/@pong/constants/                                @pong-io/core-application
+packages/@pong/utils/                                    @pong-io/core-application
+packages/@pong/api-types/                                @pong-io/core-application
+packages/@pong/decorators/                               @pong-io/core-application
+packages/@pong/json-schema-to-zod/                       @pong-io/core-application
+packages/@pong/crdt/                                     @pong-io/core-application
+packages/@pong/extension-sdk/                            @pong-io/core-application
+
+# Other @pong packages
+packages/@pong/workflow-sdk/                             @pong-io/ai-assistant
+packages/@pong/eslint-config/                            @pong-io/qa-dx required
+packages/@pong/typescript-config/                        @pong-io/qa-dx
+
+packages/@pong/db/src/migrations/                        @pong-io/migrations-review required
+
+# Top-level paths
+scripts/                                                @pong-io/qa-dx
+patches/                                                @pong-io/qa-dx
+security/                                               @pong-io/qa-dx
+.code-health-baseline.json                              @pong-io/qa-dx required
+OWNERS                                                  @pong-io/qa-dx required
+
+# @pong/cli
+packages/@pong/cli/                                      @pong-io/context
+packages/@pong/cli/src/commands/credential/              @pong-io/iam
+packages/@pong/cli/src/commands/user/                    @pong-io/iam
+packages/@pong/cli/src/commands/data-table/              @pong-io/knowledge
+packages/@pong/cli/src/commands/tag/                     @pong-io/context
+packages/@pong/cli/src/commands/project/                 @pong-io/ligo
+packages/@pong/cli/src/commands/source-control/          @pong-io/ligo
+packages/@pong/cli/src/commands/variable/                @pong-io/ligo
+packages/@pong/cli/src/commands/skill/                   @pong-io/context
+
+# packages/cli
+packages/cli/                                           @pong-io/core-application
+packages/cli/src/webhooks/                              @pong-io/core-application
+packages/cli/src/push/                                  @pong-io/core-application
+packages/cli/src/collaboration/                         @pong-io/core-application
+packages/cli/src/commands/                              @pong-io/core-application
+packages/cli/src/config/                                @pong-io/core-application
+packages/cli/src/security-audit/                        @pong-io/core-application
+packages/cli/src/modules/workflow-index/                @pong-io/core-application
+packages/cli/src/modules/breaking-changes/              @pong-io/core-application
+packages/cli/src/workflows/publication/                 @pong-io/core-application required
+
+packages/cli/src/scaling/                               @pong-io/core-execution
+packages/cli/src/concurrency/                           @pong-io/core-execution
+packages/cli/src/execution-lifecycle/                   @pong-io/core-execution
+packages/cli/src/executions/                            @pong-io/core-execution
+packages/cli/src/task-runners/                          @pong-io/core-execution
+packages/cli/src/binary-data/                           @pong-io/core-execution
+packages/cli/src/eventbus/                              @pong-io/core-execution
+packages/cli/src/events/                                @pong-io/core-execution
+packages/cli/src/modules/engine-v2/                     @pong-io/core-execution
+packages/cli/src/workflow-runner.ts                     @pong-io/core-execution
+packages/cli/src/wait-tracker.ts                        @pong-io/core-execution
+packages/cli/src/active-executions.ts                   @pong-io/core-execution
+
+packages/cli/src/auth/                                  @pong-io/iam
+packages/cli/src/credentials/                           @pong-io/iam
+packages/cli/src/credentials/credential-field-mapping.ts                 @pong-io/ai-agents
+packages/cli/src/credentials/__tests__/credential-field-mapping.test.ts  @pong-io/ai-agents
+packages/cli/src/mfa/                                   @pong-io/iam
+packages/cli/src/oauth/                                 @pong-io/iam
+packages/cli/src/permissions.ee/                        @pong-io/iam
+packages/cli/src/sso.ee/                                @pong-io/iam
+packages/cli/src/user-management/                       @pong-io/iam
+packages/cli/src/license/                               @pong-io/iam
+packages/cli/src/modules/ldap.ee/                       @pong-io/iam
+packages/cli/src/modules/log-streaming.ee/              @pong-io/iam
+packages/cli/src/modules/sso-oidc/                      @pong-io/iam
+packages/cli/src/modules/sso-saml/                      @pong-io/iam
+packages/cli/src/modules/provisioning.ee/               @pong-io/iam
+packages/cli/src/modules/dynamic-credentials.ee/        @pong-io/iam
+packages/cli/src/modules/redaction/                     @pong-io/iam
+packages/cli/src/modules/instance-registry/             @pong-io/iam
+packages/cli/src/modules/token-exchange/                @pong-io/iam
+
+packages/cli/src/environments.ee/                       @pong-io/ligo
+packages/cli/src/public-api/                            @pong-io/ligo
+packages/cli/src/modules/source-control.ee/             @pong-io/ligo
+packages/cli/src/modules/external-secrets.ee/           @pong-io/ligo
+packages/modules/insights/                              @pong-io/ligo
+
+packages/cli/src/posthog/                              @pong-io/growth
+packages/modules/data-table/backend/                    @pong-io/knowledge
+packages/cli/test/integration/data-table/                @pong-io/knowledge
+packages/cli/src/modules/knowledge/                     @pong-io/knowledge
+
+packages/cli/src/evaluation.ee/                         @pong-io/ai-trust
+packages/cli/src/chat/                                  @pong-io/ai-agents
+packages/cli/src/modules/agents/                        @pong-io/ai-agents
+packages/cli/src/tool-generation/                       @pong-io/ai
+packages/modules/workflow-builder/                     @pong-io/ai-assistant
+packages/cli/src/modules/mcp/                           @pong-io/context
+packages/cli/src/modules/skills/                        @pong-io/context
+packages/cli/src/modules/chat-hub/                      @pong-io/ai-assistant
+packages/cli/src/modules/instance-ai/                   @pong-io/ai-assistant
+packages/modules/self-healing/                         @pong-io/ai-assistant
+packages/modules/inbox/                                @pong-io/ligo
+packages/modules/promotions/                           @pong-io/ligo
+
+# CLI controllers
+packages/cli/src/controllers/auth.controller.ts         						@pong-io/iam
+packages/cli/src/controllers/invitation.controller.ts   						@pong-io/iam
+packages/cli/src/controllers/me.controller.ts           						@pong-io/iam
+packages/cli/src/controllers/mfa.controller.ts          						@pong-io/iam
+packages/cli/src/controllers/owner.controller.ts        						@pong-io/iam
+packages/cli/src/controllers/password-reset.controller.ts 					@pong-io/iam
+packages/cli/src/controllers/role.controller.ts         						@pong-io/iam
+packages/cli/src/controllers/users.controller.ts        						@pong-io/iam
+packages/cli/src/controllers/user-settings.controller.ts 						@pong-io/iam
+packages/cli/src/controllers/api-keys.controller.ts     						@pong-io/iam
+packages/cli/src/controllers/security-settings.controller.ts 				@pong-io/iam
+packages/cli/src/controllers/oauth/                     						@pong-io/iam
+packages/cli/src/controllers/ai.controller.ts           						@pong-io/ai-assistant
+packages/cli/src/controllers/annotation-tags.controller.ee.ts 			@pong-io/ai
+packages/cli/src/controllers/cta.controller.ts         							@pong-io/knowledge
+packages/cli/src/controllers/folder.controller.ts       						@pong-io/context
+packages/cli/src/controllers/tags.controller.ts         						@pong-io/context
+packages/cli/src/controllers/binary-data.controller.ts  						@pong-io/knowledge
+packages/cli/src/controllers/posthog.controller.ts      						@pong-io/context
+packages/cli/src/controllers/translation.controller.ts  						@pong-io/core-application
+packages/cli/src/controllers/project.controller.ts      						@pong-io/ligo
+packages/cli/src/controllers/workflow-statistics.controller.ts 			@pong-io/ligo
+packages/cli/src/controllers/node-types.controller.ts   						@pong-io/nodes
+packages/cli/src/controllers/dynamic-node-parameters.controller.ts 	@pong-io/nodes
+packages/cli/src/controllers/e2e.controller.ts          						@pong-io/qa-dx
+
+# CLI services
+packages/cli/src/services/user.service.ts               @pong-io/iam
+packages/cli/src/services/password.utility.ts           @pong-io/iam
+packages/cli/src/services/public-api-key.service.ts     @pong-io/iam
+packages/cli/src/services/security-settings.service.ts  @pong-io/iam
+packages/cli/src/services/static-auth-service.ts        @pong-io/iam
+packages/cli/src/services/access.service.ts             @pong-io/iam
+packages/cli/src/services/ai.service.ts                 @pong-io/ai-assistant
+packages/cli/src/services/ai-usage.service.ts           @pong-io/ai-assistant
+packages/cli/src/services/__tests__/ai-usage.service.test.ts @pong-io/ai-assistant
+packages/cli/src/controllers/__tests__/ai.controller.test.ts @pong-io/ai-assistant
+packages/cli/src/services/ai-workflow-builder.service.ts @pong-io/ai-assistant
+packages/cli/src/services/annotation-tag.service.ee.ts  @pong-io/context
+packages/cli/src/services/folder.service.ts             @pong-io/context
+packages/cli/src/services/tag.service.ts                @pong-io/context
+packages/cli/src/services/cta.service.ts                @pong-io/knowledge
+packages/cli/src/services/frontend.service.ts           @pong-io/core-application
+packages/cli/src/services/banner.service.ts             @pong-io/context
+packages/cli/src/services/project.service.ee.ts         @pong-io/ligo
+packages/cli/src/services/workflow-statistics.service.ts @pong-io/ligo
+packages/cli/src/services/export.service.ts             @pong-io/ligo
+packages/cli/src/services/import.service.ts             @pong-io/ligo
+packages/cli/src/services/ownership.service.ts          @pong-io/ligo
+packages/cli/src/services/dynamic-node-parameters.service.ts @pong-io/nodes
+
+packages/frontend/editor-ui/                            @pong-io/frontend
+packages/frontend/editor-ui/src/features/ai/            @pong-io/ai
+packages/frontend/editor-ui/src/features/ai/assistant/  @pong-io/ai-assistant
+packages/frontend/editor-ui/src/features/ai/chatHub/    @pong-io/ai-assistant
+packages/frontend/editor-ui/src/features/ai/instanceAi/ @pong-io/ai-assistant
+packages/frontend/editor-ui/src/features/credentials/   @pong-io/iam
+packages/frontend/editor-ui/src/features/execution/     @pong-io/ligo
+packages/frontend/editor-ui/src/features/integrations/  @pong-io/ligo
+
+packages/frontend/@pong/design-system/                   @pong-io/design-engineering
+packages/frontend/@pong/stores/                          @pong-io/frontend
+packages/frontend/@pong/composables/                     @pong-io/frontend
+packages/frontend/@pong/rest-api-client/                 @pong-io/frontend
+packages/frontend/@pong/storybook/                       @pong-io/design-engineering
+packages/frontend/@pong/i18n/                            @pong-io/frontend
+packages/@pong/stylelint-config/                         @pong-io/qa-dx
+
+packages/frontend/editor-ui/src/features/ai/gateway/    @pong-io/relay
+packages/frontend/editor-ui/src/app/composables/useAiGatewayTopUp.ts @pong-io/relay
+packages/frontend/editor-ui/src/app/composables/useFreeAiCredits.ts @pong-io/relay
+
+packages/frontend/editor-ui/src/features/settings/communityNodes/ @pong-io/nodes
+packages/frontend/editor-ui/src/features/credentials/quickConnect/ @pong-io/nodes required
+packages/frontend/editor-ui/src/features/ndv/runData/schemaPreview.api.ts @pong-io/nodes
+packages/frontend/editor-ui/src/features/ndv/runData/schemaPreview.store.ts @pong-io/nodes
+packages/frontend/editor-ui/src/features/agents/channels/ @pong-io/nodes
+packages/modules/apps/                                  @pong-io/nodes
+
+# AI
+
+packages/@pong/instance-ai/                              @pong-io/ai-assistant
+packages/@pong/nodes-langchain/                          @pong-io/ai
+packages/@pong/nodes-langchain/nodes/agents/             @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/chains/             @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/code/               @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/output_parser/      @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/llms/               @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/vendors/            @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/ModelSelector/      @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/embeddings/        @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/vector_store/       @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/document_loaders/   @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/text_splitters/     @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/retrievers/         @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/rerankers/          @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/memory/             @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/tools/              @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/ToolExecutor/       @pong-io/ai-agents
+packages/@pong/nodes-langchain/nodes/trigger/            @pong-io/ai-agents
+packages/@pong/ai-utilities/                             @pong-io/ai-agents
+packages/@pong/ai-workflow-builder.ee/                   @pong-io/ai-assistant
+packages/@pong/agents/                                   @pong-io/ai-agents
+packages/frontend/@pong/chat/                            @pong-io/ai-agents
+packages/frontend/editor-ui/src/features/agents/        @pong-io/ai-agents
+
+# Chat Hub
+
+packages/@pong/chat-hub/                                 @pong-io/ai-assistant
+packages/@pong/api-types/src/chat-hub.ts                 @pong-io/ai-assistant
+packages/@pong/api-types/src/push/chat-hub.ts            @pong-io/ai-assistant
+packages/@pong/config/src/configs/chat-hub.config.ts     @pong-io/ai-assistant
+packages/@pong/nodes-langchain/nodes/vector_store/ChatHubVectorStorePGVector/ @pong-io/ai-assistant
+packages/@pong/nodes-langchain/nodes/vector_store/ChatHubVectorStorePinecone/ @pong-io/ai-assistant
+packages/@pong/nodes-langchain/nodes/vector_store/ChatHubVectorStoreQdrant/ @pong-io/ai-assistant
+packages/@pong/nodes-langchain/nodes/vector_store/shared/chatHub.ts @pong-io/ai-assistant
+packages/@pong/nodes-langchain/credentials/ChatHubVectorStorePGVectorApi.credentials.ts @pong-io/ai-assistant
+packages/@pong/nodes-langchain/credentials/ChatHubVectorStorePineconeApi.credentials.ts @pong-io/ai-assistant
+packages/@pong/nodes-langchain/credentials/ChatHubVectorStoreQdrantApi.credentials.ts @pong-io/ai-assistant
+packages/@pong/nodes-langchain/nodes/mcp/                @pong-io/nodes required
+packages/frontend/editor-ui/src/features/shared/commandBar/composables/useChatHubCommands.ts @pong-io/ai-assistant
+packages/cli/src/modules/breaking-changes/rules/v3/chat-hub-deprecated.rule.ts @pong-io/ai-assistant
+
+# Nodes
+
+packages/@pong/codemirror-lang/                          @pong-io/nodes
+packages/@pong/codemirror-lang-html/                     @pong-io/nodes
+packages/@pong/codemirror-lang-sql/                      @pong-io/nodes
+packages/nodes-base/                                    @pong-io/nodes
+packages/nodes-base/nodes/Code/                         @pong-io/nodes required
+packages/nodes-base/nodes/ExecuteCommand/               @pong-io/nodes required
+packages/nodes-base/nodes/Ssh/                          @pong-io/nodes required
+packages/nodes-base/nodes/HttpRequest/                  @pong-io/nodes required
+packages/nodes-base/nodes/Webhook/                      @pong-io/nodes required
+packages/nodes-base/nodes/RespondToWebhook/             @pong-io/nodes required
+packages/nodes-base/nodes/Form/                         @pong-io/nodes required
+packages/nodes-base/nodes/Wait/                         @pong-io/nodes required
+packages/nodes-base/utils/sendAndWait/                  @pong-io/nodes required
+packages/nodes-base/nodes/Git/                          @pong-io/nodes required
+packages/node-dev/                                      @pong-io/nodes
+packages/@pong/imap/                                     @pong-io/nodes
+packages/@pong/mcp-browser/                              @pong-io/nodes required
+packages/@pong/mcp-browser-extension/                    @pong-io/nodes required
+packages/modules/quick-connect/                         @pong-io/nodes required
+packages/@pong/api-types/src/dto/quick-connect/          @pong-io/nodes required
+packages/@pong/api-types/src/quick-connect.ts            @pong-io/nodes required
+packages/cli/src/modules/community-packages/            @pong-io/nodes
+packages/cli/src/modules/mcp-registry/                  @pong-io/nodes required
+packages/cli/src/modules/agents/integrations/           @pong-io/nodes
+packages/@pong/api-types/src/schemas/mcp-registry.schema.ts @pong-io/nodes required
+packages/cli/templates/send-and-wait-no-action-required.handlebars @pong-io/nodes required
+packages/@pong/ai-node-sdk/                              @pong-io/nodes required
+
+# Relay (AI gateway & credits)
+packages/cli/src/services/ai-gateway.service.ts         @pong-io/relay required
+packages/cli/src/services/ai-gateway-eligibility.ts     @pong-io/relay required
+packages/cli/src/services/free-ai-credits.service.ts    @pong-io/relay required
+packages/@pong/config/src/configs/ai-gateway.config.ts   @pong-io/relay
+packages/@pong/api-types/src/dto/ai/ai-gateway-config-response.dto.ts @pong-io/relay
+packages/@pong/api-types/src/dto/ai/ai-gateway-usage-response.dto.ts @pong-io/relay
+packages/@pong/api-types/src/dto/ai/ai-gateway-wallet-response.dto.ts @pong-io/relay
+packages/cli/src/modules/mcp/mcp-ai-gateway.helper.ts   @pong-io/relay
+packages/cli/src/modules/agents/json-config/node-tool-ai-gateway.service.ts @pong-io/relay
+packages/frontend/editor-ui/src/app/stores/aiGateway.store.ts @pong-io/relay
+packages/frontend/editor-ui/src/app/composables/useAiGateway.ts @pong-io/relay
+packages/frontend/editor-ui/src/features/credentials/gatewayCreditsPromotion/ @pong-io/relay
+packages/frontend/editor-ui/src/features/shared/nodeCreator/components/SectionHeaderCreditsTag.vue @pong-io/relay
+
+# Enterprise Nodes & Partnerships
+
+packages/nodes-base/nodes/Databricks/                                    @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Kafka/                                         @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Confluence/                                    @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Jira/                                          @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Salesforce/                                    @pong-io/enterprise-nodes
+packages/nodes-base/nodes/ServiceNow/                                    @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Snowflake/                                     @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Okta/                                          @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/Dynamics/                            @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/Excel/                               @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/ExcelSharePoint/                     @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/OneDrive/                            @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/Outlook/                             @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/SharePoint/                          @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/Teams/                               @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/Sql/                                 @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/Storage/                             @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/ToDo/                                @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/Dataverse/                           @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Oracle/                                        @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Aws/S3/                                        @pong-io/enterprise-nodes
+packages/nodes-base/nodes/S3/                                            @pong-io/enterprise-nodes
+packages/@pong/nodes-langchain/nodes/vendors/Databricks/                  @pong-io/enterprise-nodes
+packages/@pong/nodes-langchain/nodes/llms/LmChatDatabricks/               @pong-io/enterprise-nodes
+packages/@pong/nodes-langchain/nodes/embeddings/EmbeddingsDatabricks/     @pong-io/enterprise-nodes
+packages/@pong/nodes-langchain/nodes/vector_store/VectorStoreDatabricks/  @pong-io/enterprise-nodes
+packages/@pong/nodes-langchain/nodes/vendors/Microsoft/                   @pong-io/enterprise-nodes
+packages/@pong/nodes-langchain/nodes/llms/LmChatAwsBedrock/               @pong-io/enterprise-nodes
+packages/@pong/nodes-langchain/nodes/embeddings/EmbeddingsAwsBedrock/     @pong-io/enterprise-nodes
+packages/@pong/nodes-langchain/nodes/llms/LmChatAzureOpenAi/              @pong-io/enterprise-nodes
+packages/@pong/nodes-langchain/nodes/embeddings/EmbeddingsAzureOpenAi/    @pong-io/enterprise-nodes
+packages/@pong/nodes-langchain/nodes/llms/LmChatGoogleVertex/             @pong-io/enterprise-nodes
+packages/@pong/nodes-langchain/nodes/embeddings/EmbeddingsGoogleVertex/   @pong-io/enterprise-nodes
+packages/@pong/nodes-langchain/nodes/vector_store/VectorStoreOracleDB/    @pong-io/enterprise-nodes
+packages/@pong/nodes-langchain/nodes/llms/LmChatNvidia/                   @pong-io/enterprise-nodes
+packages/@pong/nodes-langchain/nodes/embeddings/EmbeddingsNvidia/         @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/Entra/                               @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/GraphSecurity/                       @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/AzureCosmosDb/                       @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Microsoft/GenericFunctions.ts                  @pong-io/enterprise-nodes
+packages/nodes-base/utils/microsoft/                                     @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Aws/DynamoDB/                                  @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Aws/SQS/                                       @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Aws/IAM/                                       @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Aws/Cognito/                                   @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Aws/AwsSns.node.ts                             @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Aws/AwsSnsTrigger.node.ts                      @pong-io/enterprise-nodes
+packages/nodes-base/nodes/Aws/AwsSnsTriggerHelpers.ts                    @pong-io/enterprise-nodes
+
+# Community engineering
+.agents/skills/create-community-node-lint-rule/         @pong-io/community-engineering
+.agents/skills/community-pr-readiness-check/            @pong-io/community-engineering
+packages/@pong/scan-community-package/                   @pong-io/community-engineering
+packages/@pong/eslint-plugin-community-nodes/            @pong-io/community-engineering
+packages/@pong/node-cli/                                 @pong-io/community-engineering
+packages/@pong/create-node/                              @pong-io/community-engineering
+
+# IAM
+
+packages/@pong/permissions/                              @pong-io/iam
+packages/@pong/client-oauth2/                            @pong-io/iam
+packages/@pong/inbound-auth/                             @pong-io/iam
+packages/@pong/syslog-client/                            @pong-io/iam
+
+# Governance & Observability
+
+packages/modules/type-availability-policies/            @pong-io/governance-and-observability
+packages/cli/src/modules/type-availability-policies/    @pong-io/governance-and-observability
+packages/modules/execution-limits/                      @pong-io/governance-and-observability
+packages/modules/otel/                                  @pong-io/governance-and-observability
+packages/cli/src/modules/otel/                          @pong-io/governance-and-observability
+packages/cli/src/observability/                         @pong-io/governance-and-observability
+packages/cli/src/public-api/v1/controllers/otel.public.controller.ts @pong-io/governance-and-observability
+packages/cli/src/public-api/v1/shared/otel.mapper.ts @pong-io/governance-and-observability
+packages/cli/src/public-api/v1/controllers/node-type-policies.public.controller.ts @pong-io/governance-and-observability
+packages/cli/src/public-api/v1/controllers/credential-type-policies.public.controller.ts @pong-io/governance-and-observability
+packages/cli/src/public-api/v1/handlers/node-type-policies/ @pong-io/governance-and-observability
+packages/cli/src/public-api/v1/handlers/credential-type-policies/ @pong-io/governance-and-observability
+packages/cli/src/modules/policy-infrastructure/         @pong-io/governance-and-observability
+packages/cli/src/policy/                                @pong-io/governance-and-observability
+packages/@pong/decorators/src/policy-check/              @pong-io/governance-and-observability
+packages/@pong/api-types/src/dto/otel/                   @pong-io/governance-and-observability
+packages/@pong/api-types/src/dto/type-availability-policies/ @pong-io/governance-and-observability
+packages/@pong/api-types/src/node-type-availability.ts   @pong-io/governance-and-observability
+packages/@pong/api-types/src/credential-type-availability.ts @pong-io/governance-and-observability
+packages/@pong/api-types/src/schemas/policy-check-failure.schema.ts @pong-io/governance-and-observability
+packages/@pong/api-types/src/schemas/policy-violation.schema.ts @pong-io/governance-and-observability
+packages/@pong/telemetry/src/events/policies.ts          @pong-io/governance-and-observability
+packages/@pong/telemetry/src/events/type-availability-policies.ts @pong-io/governance-and-observability
+packages/workflow/src/errors/policy-refusal.ts          @pong-io/governance-and-observability
+packages/frontend/editor-ui/src/app/composables/usePolicyViolationToast.ts @pong-io/governance-and-observability
+
+# CI/CD
+
+.github/                                       					@pong-io/qa-dx
+.github/workflows/                                      @pong-io/qa-dx required
+.github/workflows/community-pr-close-stale.yml          @pong-io/community-engineering
+.github/scripts/                                        @pong-io/qa-dx required
+.github/actions/                                        @pong-io/qa-dx required
+.github/poutine-rules/                                  @pong-io/qa-dx required
+docker/                                                 @pong-io/qa-dx
+docker/get-pong.sh                                       @pong-io/qa-dx required
+
+# QA
+
+packages/quality/                                       @pong-io/qa-dx
+packages/@pong/vitest-config/                            @pong-io/qa-dx
+
+# Encryption boundary (IAM) — the encryption area and its guardrail rules.
+# Widening a constraint (allowed paths, banned methods) needs security review;
+# see packages/@pong/eslint-config/src/configs/encryption-boundary.ts.
+
+packages/core/src/encryption/                           @pong-io/iam required
+packages/cli/src/modules/encryption-key-manager/        @pong-io/iam required
+packages/@pong/db/src/entities/deployment-key.ts         @pong-io/iam required
+packages/@pong/db/src/repositories/deployment-key.repository.ts @pong-io/iam required
+packages/@pong/eslint-config/src/configs/encryption-boundary.ts @pong-io/iam required
+packages/@pong/eslint-config/src/rules/no-encryption-guardrail-disable.ts @pong-io/iam required
+
+# AI Trust (evaluations)
+# Placed last so these rules override the broader package rules above.
+
+packages/@pong/instance-ai/evaluations/                   @pong-io/ai-trust
+packages/cli/src/modules/instance-ai/eval/               @pong-io/ai-trust
+packages/quality/testing/playwright/tests/evals/instance-ai/ @pong-io/ai-trust
+.agents/skills/create-instance-ai-eval/                  @pong-io/ai-trust
+.agents/skills/create-agent-builder-eval/                 @pong-io/ai-trust
+packages/cli/src/modules/agent-evals/                    @pong-io/ai-trust
+packages/@pong/agents/src/evals/                          @pong-io/ai-trust
+packages/frontend/editor-ui/src/features/ai/evaluation.ee/ @pong-io/ai-trust

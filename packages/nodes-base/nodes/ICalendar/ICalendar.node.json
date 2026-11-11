@@ -1,0 +1,17 @@
+{
+	"node": "pong-nodes-base.iCal",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Core Nodes", "Productivity"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness"
+			}
+		]
+	},
+	"alias": ["ics", ".ics"],
+	"subcategories": {
+		"Core Nodes": ["Files"]
+	}
+}
