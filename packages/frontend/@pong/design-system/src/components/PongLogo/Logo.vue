@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { useFavicon } from '@vueuse/core';
-import { computed, onMounted, useCssModule, useTemplateRef } from 'vue';
+import { computed, useCssModule } from 'vue';
 
-import LogoIcon from './logo-icon.svg';
-import LogoText from './logo-text.svg';
+import LogoIcon from './logo-icon.png';
 
 const props = defineProps<
 	(
@@ -19,45 +17,26 @@ const props = defineProps<
 	}
 >();
 
-const { size, releaseChannel } = props;
-
-const showLogoText = computed(() => {
-	if (size === 'large') return true;
-	return !props.collapsed;
-});
+const showLogoText = computed(
+	() => props.size === 'large' || (props.size === 'small' && !props.collapsed),
+);
 
 const $style = useCssModule();
-const containerClasses = computed(() => {
-	if (size === 'large') {
-		return [$style.logoContainer, $style.large];
-	}
-	return [
-		$style.logoContainer,
-		$style.sidebar,
-		props.collapsed ? $style.sidebarCollapsed : $style.sidebarExpanded,
-	];
-});
-
-const svg = useTemplateRef<{ $el: Element }>('logo');
-onMounted(() => {
-	if (releaseChannel !== 'dev' || !('createObjectURL' in URL)) {
-		return;
-	}
-
-	const logoEl = svg.value!.$el;
-
-	/** Reuse the SVG as the favicon. These must use HEX values. */
-	const hexColor = '#898989';
-	const faviconSvg = logoEl.outerHTML.replace('>', `><style>path { fill: ${hexColor}; }</style>`);
-	const blob = new Blob([faviconSvg], { type: 'image/svg+xml' });
-	useFavicon(URL.createObjectURL(blob));
-});
+const containerClasses = computed(() =>
+	props.size === 'large'
+		? [$style.logoContainer, $style.large]
+		: [
+				$style.logoContainer,
+				$style.sidebar,
+				props.collapsed ? $style.sidebarCollapsed : $style.sidebarExpanded,
+			],
+);
 </script>
 
 <template>
 	<div :class="containerClasses" data-test-id="pong-logo">
-		<LogoIcon ref="logo" :class="[$style.logo, { [$style.dev]: releaseChannel === 'dev' }]" />
-		<LogoText v-if="showLogoText" :class="$style.logoText" />
+		<img :src="LogoIcon" :class="$style.logo" alt="Pong Studio" draggable="false" />
+		<span v-if="showLogoText" :class="$style.wordmark">Pong Studio</span>
 		<slot />
 	</div>
 </template>
@@ -68,38 +47,35 @@ onMounted(() => {
 	justify-content: center;
 	align-items: center;
 	gap: var(--spacing--3xs);
-	fill: var(--text-color--subtler);
-}
-
-.logo,
-.logoText {
-	width: auto;
-	height: var(--height--3xs);
-	max-width: 100%;
+	color: var(--text-color);
 }
 
 .logo {
-	--logo-icon-fill: var(--background--brand);
-
-	&.dev {
-		--logo-icon-fill: var(--text-color--subtler);
-	}
-
-	path {
-		fill: var(--logo-icon-fill);
-	}
+	width: auto;
+	height: var(--height--3xs);
+	max-width: 100%;
+	object-fit: contain;
 }
 
-.logoText path {
-	fill: var(--text-color);
+.wordmark {
+	font-family: var(--font-family);
+	font-size: calc(var(--height--3xs) * 0.62);
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	line-height: 1;
+	white-space: nowrap;
+	color: var(--text-color);
 }
 
 .large {
 	margin-bottom: var(--spacing--xl);
 
-	.logo,
-	.logoText {
+	.logo {
 		height: var(--height--2xs);
+	}
+
+	.wordmark {
+		font-size: calc(var(--height--2xs) * 0.62);
 	}
 }
 </style>
