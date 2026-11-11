@@ -297,6 +297,13 @@ const cacheCredentials = (form: EmailOrLdapLoginIdAndPassword) => {
 	emailOrLdapLoginId.value = form.emailOrLdapLoginId;
 	password.value = form.password;
 };
+
+/** Demo account created on first boot, so a visitor can look around before signing up. */
+const DEMO_ACCOUNT = { email: 'demo@pong.local', password: 'PongStudio2026!' };
+
+const enterAsGuest = async () => {
+	await login({ ...DEMO_ACCOUNT, emailOrLdapLoginId: DEMO_ACCOUNT.email });
+};
 </script>
 
 <template>
@@ -319,7 +326,19 @@ const cacheCredentials = (form: EmailOrLdapLoginIdAndPassword) => {
 				:form-loading="loading"
 				data-test-id="signin-form"
 				@submit="onEmailPasswordSubmitted"
-			/>
+			>
+				<template #guest>
+					<button
+						:class="$style.guestEntryButton"
+						type="button"
+						:disabled="loading"
+						data-test-id="guest-entry-button"
+						@click="enterAsGuest"
+					>
+						先进入工作台（演示账号）
+					</button>
+				</template>
+			</AuthView>
 		</template>
 		<MfaView
 			v-if="showMfaView"
@@ -330,3 +349,29 @@ const cacheCredentials = (form: EmailOrLdapLoginIdAndPassword) => {
 		/>
 	</div>
 </template>
+
+<style lang="scss" module>
+.guestEntryButton {
+	display: flex;
+	width: 100%;
+	height: 40px;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid #747775;
+	border-radius: 4px;
+	background: #fff;
+	color: #1f1f1f;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+
+	&:hover:not(:disabled) {
+		background: #f8fafd;
+	}
+
+	&:disabled {
+		cursor: wait;
+		opacity: 0.6;
+	}
+}
+</style>

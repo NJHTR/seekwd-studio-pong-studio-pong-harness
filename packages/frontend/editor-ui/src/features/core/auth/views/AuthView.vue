@@ -1,21 +1,27 @@
 <script setup lang="ts">
-import { PongLogo } from '@pong/design-system';
+import { computed, useCssModule } from 'vue';
+
+import { PongFormBox } from '@pong/design-system';
 import type { FormFieldValueUpdate, IFormBoxConfig } from '@/Interface';
-import { useSettingsStore } from '@pong/stores/settings.store';
 import type { EmailOrLdapLoginIdAndPassword } from './SigninView.vue';
 
-import { PongFormBox, PongText } from '@pong/design-system';
-withDefaults(
+const props = withDefaults(
 	defineProps<{
 		/** The standard form box. Omit it when the default slot renders the card instead. */
 		form?: IFormBoxConfig;
 		formLoading?: boolean;
 		subtitle?: string;
+		/** Large heading shown in the left column. Falls back to `subtitle`, then to the default. */
+		title?: string;
+		/** Supporting sentence under the heading. */
+		description?: string;
 	}>(),
 	{
 		form: undefined,
 		formLoading: false,
 		subtitle: undefined,
+		title: undefined,
+		description: undefined,
 	},
 );
 
@@ -37,55 +43,205 @@ const onSecondaryClick = () => {
 	emit('secondaryClick');
 };
 
-const {
-	settings: { releaseChannel },
-} = useSettingsStore();
+const heading = computed(() => props.title ?? props.subtitle ?? '欢迎使用 Pong Studio');
+const supportingText = computed(
+	() => props.description ?? '进入工作台，用自然语言和节点画布编排智能体工作流。',
+);
+
+const $style = useCssModule();
 </script>
 
 <template>
-	<div :class="$style.container">
-		<PongLogo size="large" :release-channel="releaseChannel" />
-		<div v-if="subtitle" :class="$style.textContainer">
-			<PongText size="large">{{ subtitle }}</PongText>
+	<main :class="$style.page">
+		<div :class="$style.wrap">
+			<section :class="$style.card" aria-labelledby="auth-heading">
+				<div :class="$style.copy">
+					<h1 id="auth-heading" :class="$style.title">{{ heading }}</h1>
+					<p :class="$style.description">{{ supportingText }}</p>
+				</div>
+
+				<div :class="$style.formColumn">
+					<slot>
+						<PongFormBox
+							v-if="form"
+							v-bind="form"
+							data-test-id="auth-form"
+							:button-loading="formLoading"
+							submit-button-variant="brand"
+							@secondary-click="onSecondaryClick"
+							@submit="onSubmit"
+							@update="onUpdate"
+						/>
+					</slot>
+					<div v-if="$slots.guest" :class="$style.guestSlot">
+						<span :class="$style.guestDivider">或者</span>
+						<slot name="guest" />
+					</div>
+				</div>
+			</section>
+
+			<footer :class="$style.footer">
+				<span :class="$style.footerLanguage">简体中文</span>
+				<nav :class="$style.footerNav" aria-label="帮助与政策">
+					<a href="#help">帮助</a>
+					<a href="#privacy">隐私权</a>
+					<a href="#terms">条款</a>
+				</nav>
+			</footer>
 		</div>
-		<div :class="$style.formContainer">
-			<slot>
-				<PongFormBox
-					v-if="form"
-					v-bind="form"
-					data-test-id="auth-form"
-					:button-loading="formLoading"
-					submit-button-variant="brand"
-					@secondary-click="onSecondaryClick"
-					@submit="onSubmit"
-					@update="onUpdate"
-				/>
-			</slot>
-		</div>
-	</div>
+	</main>
 </template>
 
 <style lang="scss" module>
-body {
-	background-color: var(--color--background--light-2);
+.page {
+	position: fixed;
+	inset: 0;
+	z-index: 10;
+	display: grid;
+	min-height: 100vh;
+	overflow-y: auto;
+	place-items: center;
+	padding: 40px 24px 30px;
+	background: #f0f4f9;
+	color: #1f1f1f;
+	font-family: var(--font-family);
+	-webkit-font-smoothing: antialiased;
 }
 
-.container {
+.wrap {
+	width: min(100%, 1040px);
+	margin: auto;
+}
+
+.card {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	align-items: center;
+	gap: 48px;
+	min-height: 384px;
+	padding: 36px;
+	border: 1px solid rgba(255, 255, 255, 0.85);
+	border-radius: 6px;
+	background: #fff;
+	box-shadow: 0 1px 2px rgba(60, 64, 67, 0.03);
+}
+
+.copy {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	align-self: stretch;
+	padding-top: 2px;
+}
+
+.title {
+	margin: 24px 0 16px;
+	color: #1f1f1f;
+	font-size: 44px;
+	font-weight: 400;
+	line-height: 1.22;
+}
+
+.description {
+	max-width: 460px;
+	margin: 0;
+	color: #1f1f1f;
+	font-size: 16px;
+	line-height: 1.5;
+}
+
+.formColumn {
+	display: flex;
+	min-width: 0;
+	min-height: 312px;
+	flex-direction: column;
+	justify-content: center;
+}
+
+/* Flatten the form box so it sits on the card like the reference layout. */
+.formColumn :global(.pong-form-box) {
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+}
+
+.formColumn :global(input),
+.formColumn :global(select) {
+	height: 52px;
+	border-radius: 4px;
+	font-size: 16px;
+}
+
+.formColumn :global(button[type='submit']) {
+	height: 40px;
+	border-radius: 4px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.guestSlot {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-top: 20px;
+}
+
+.guestDivider {
 	display: flex;
 	align-items: center;
-	flex-direction: column;
-	padding-top: var(--spacing--2xl);
+	gap: 12px;
+	color: #5f6368;
+	font-size: 13px;
 
-	> * {
-		width: 352px;
+	&::before,
+	&::after {
+		flex: 1;
+		height: 1px;
+		background: #dadce0;
+		content: '';
 	}
 }
 
-.textContainer {
-	text-align: center;
+.footer {
+	display: flex;
+	min-height: 48px;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 18px 0;
+	color: #444746;
+	font-size: 13px;
 }
 
-.formContainer {
-	padding-bottom: var(--spacing--xl);
+.footerLanguage {
+	padding: 4px 0;
+}
+
+.footerNav {
+	display: flex;
+	align-items: center;
+	gap: 28px;
+
+	a {
+		color: inherit;
+		text-decoration: none;
+
+		&:hover {
+			text-decoration: underline;
+		}
+	}
+}
+
+@media (max-width: 820px) {
+	.card {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 24px;
+		padding: 24px;
+	}
+
+	.title {
+		margin-top: 8px;
+		font-size: 32px;
+	}
 }
 </style>
