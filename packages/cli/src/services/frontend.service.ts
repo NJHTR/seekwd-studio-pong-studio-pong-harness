@@ -373,7 +373,10 @@ export class FrontendService {
 				enabled: false,
 				enforced: false,
 			},
-			hideUsagePage: this.globalConfig.hideUsagePage,
+			// Local build: there are no plans, so the usage/plan settings page is hidden.
+			hideUsagePage: process.env.PONG_LOCAL_UNLOCKED === 'false'
+				? this.globalConfig.hideUsagePage
+				: true,
 			license: {
 				consumerId: 'unknown',
 				environment: this.globalConfig.license.tenantId === 1 ? 'production' : 'staging',

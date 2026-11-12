@@ -1,9 +1,6 @@
 <script lang="ts">
 import type { BannerName } from '@pong/api-types';
 import { useBannersStore } from '@/features/shared/banners/banners.store';
-import NonProductionLicenseBanner from './banners/NonProductionLicenseBanner.vue';
-import TrialOverBanner from './banners/TrialOverBanner.vue';
-import TrialBanner from './banners/TrialBanner.vue';
 import V1Banner from './banners/V1Banner.vue';
 import EmailConfirmationBanner from './banners/EmailConfirmationBanner.vue';
 import DataTableStorageLimitWarningBanner from './banners/DataTableStorageLimitWarningBanner.vue';
@@ -14,18 +11,14 @@ import type { PongBanners } from '../banners.types';
 
 // All banners that can be shown in the app should be registered here.
 // This component renders the banner with the highest priority from the banner stack, located in the banners store.
-// When registering a new banner, please consult this document to determine it's priority:
-// https://www.notion.so/pong/Banner-stack-60948c4167c743718fde80d6745258d5
+// This local build has no plans or licenses, so trial and license banners are not registered.
 export const PONG_BANNERS: PongBanners = {
 	V1: { priority: 350, component: V1Banner as Component },
 	WORKFLOW_AUTO_DEACTIVATED: {
 		priority: 340,
 		component: WorkflowAutoDeactivatedBanner as Component,
 	},
-	TRIAL_OVER: { priority: 260, component: TrialOverBanner as Component },
 	EMAIL_CONFIRMATION: { priority: 250, component: EmailConfirmationBanner as Component },
-	TRIAL: { priority: 150, component: TrialBanner as Component },
-	NON_PRODUCTION_LICENSE: { priority: 140, component: NonProductionLicenseBanner as Component },
 	DATA_TABLE_STORAGE_LIMIT_WARNING: {
 		priority: 300,
 		component: DataTableStorageLimitWarningBanner as Component,
@@ -59,12 +52,17 @@ const removeUndefinedValues = (obj: Record<string, unknown>) => {
 const currentlyShownBanner = computed(() => {
 	void updateCurrentBannerHeight();
 	if (bannersStore.bannerStack.length === 0) return null;
+
+	// Only consider banners that are still registered (plan and license banners are not).
+	const registered = bannersStore.bannerStack.filter((bannerName) => getBannerForName(bannerName));
+	if (registered.length === 0) return null;
+
 	// Find the banner with the highest priority
-	let currentBanner = getBannerForName(bannersStore.bannerStack[0]);
-	let currentBannerName = bannersStore.bannerStack[0];
-	bannersStore.bannerStack.forEach((bannerName, index) => {
+	let currentBanner = getBannerForName(registered[0])!;
+	let currentBannerName = registered[0];
+	registered.forEach((bannerName, index) => {
 		if (index === 0) return;
-		const bannerToCompare = getBannerForName(bannerName);
+		const bannerToCompare = getBannerForName(bannerName)!;
 		if (bannerToCompare.priority > currentBanner.priority) {
 			currentBanner = bannerToCompare;
 			currentBannerName = bannerName;

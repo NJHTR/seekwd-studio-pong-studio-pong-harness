@@ -520,13 +520,12 @@ export class License implements LicenseProvider {
 
 	/** @deprecated Use `LicenseState` instead. */
 	getTeamProjectLimit() {
+		// Local builds allow unlimited team projects.
+		if (process.env.PONG_LOCAL_UNLOCKED !== 'false') return UNLIMITED_LICENSE_QUOTA;
 		return this.getValue(LICENSE_QUOTAS.TEAM_PROJECT_LIMIT) ?? 0;
 	}
 
-	/**
-	 * The SDK merges all active entitlements and lets the newest one win, so an add-on that
-	 * started later (such as Registered Community) would otherwise rename a paid plan.
-	 */
+	/** Local builds report a neutral plan name so no plan is surfaced in the UI. */
 	getPlanName(): string {
 		const mergedPlanName = this.getValue('planName');
 		// Empty when the cert is missing, invalid or expired; the entitlements alone can't tell.
