@@ -1,4 +1,7 @@
-import { stashPendingPongChatMessage, consumePendingPongChatMessage } from '../pendingPongChatMessage';
+import {
+	stashPendingPongChatMessage,
+	consumePendingPongChatMessage,
+} from '../pendingPongChatMessage';
 
 describe('pendingPongChatMessage', () => {
 	it('returns the stored message for a matching agent id', () => {

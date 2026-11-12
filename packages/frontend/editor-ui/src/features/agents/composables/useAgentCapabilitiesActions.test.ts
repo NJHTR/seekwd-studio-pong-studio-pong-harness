@@ -402,7 +402,11 @@ describe('useAgentCapabilitiesActions', () => {
 				{
 					type: 'node',
 					name: 'get_dates',
-					node: { nodeType: 'pong-nodes-base.dateTimeTool', nodeTypeVersion: 1, nodeParameters: {} },
+					node: {
+						nodeType: 'pong-nodes-base.dateTimeTool',
+						nodeTypeVersion: 1,
+						nodeParameters: {},
+					},
 				},
 				{ type: 'workflow', workflow: 'shared-workflow', name: 'First lookup' },
 				{ type: 'workflow', workflow: 'shared-workflow', name: 'Second lookup' },

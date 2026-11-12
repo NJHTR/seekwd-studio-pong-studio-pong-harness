@@ -16,12 +16,26 @@ export function isRetryableChatError(message: ChatMessage | undefined): boolean 
 	);
 }
 
-/** True for a `ResponseError`-shaped 404, as the agent REST endpoints throw it. */
-export function isNotFoundError(error: unknown): boolean {
+/** True for an error that carries the given HTTP status, as `ResponseError` does. */
+function isHttpStatusError(error: unknown, status: number): boolean {
 	return (
 		typeof error === 'object' &&
 		error !== null &&
 		'httpStatusCode' in error &&
-		error.httpStatusCode === 404
+		error.httpStatusCode === status
 	);
+}
+
+/** True for a `ResponseError`-shaped 404, as the agent REST endpoints throw it. */
+export function isNotFoundError(error: unknown): boolean {
+	return isHttpStatusError(error, 404);
+}
+
+/**
+ * True when an approval decision can no longer apply: 409 for an approval that
+ * is decided or expired, and 404 for one that the thread does not know. The
+ * card then shows that it is no longer valid instead of offering the choices.
+ */
+export function isApprovalGoneError(error: unknown): boolean {
+	return isHttpStatusError(error, 409) || isHttpStatusError(error, 404);
 }

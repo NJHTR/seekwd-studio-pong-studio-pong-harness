@@ -133,7 +133,10 @@ describe('AgentPublishedModal', () => {
 		const { getByTestId } = createComponentRenderer(AgentPublishedModal, {
 			global: { stubs },
 		})({
-			props: { modalName: MODAL_NAME, data: { agentId: 'a1', projectId: 'p1', pongChatLive: true } },
+			props: {
+				modalName: MODAL_NAME,
+				data: { agentId: 'a1', projectId: 'p1', pongChatLive: true },
+			},
 		});
 
 		expect(getByTestId('agent-published-modal-pong-chat')).toBeInTheDocument();

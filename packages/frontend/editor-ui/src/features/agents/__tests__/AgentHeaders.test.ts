@@ -195,7 +195,9 @@ describe('AgentSessionTimelineHeader', () => {
 
 	it('renders breadcrumbs and the session picker', () => {
 		const wrapper = mountNavigationHeader();
-		const breadcrumbs = wrapper.findComponent({ name: 'PongBreadcrumbs' }) as BreadcrumbsStubWrapper;
+		const breadcrumbs = wrapper.findComponent({
+			name: 'PongBreadcrumbs',
+		}) as BreadcrumbsStubWrapper;
 
 		expect(breadcrumbs.vm.items.map((item) => item.id)).toEqual(['project-1', 'agent-1']);
 		expect(wrapper.find('[data-testid="session-header-switcher"]').exists()).toBe(true);
@@ -219,7 +221,9 @@ describe('AgentSessionTimelineHeader', () => {
 
 	it('emits timeline header actions', async () => {
 		const wrapper = mountNavigationHeader();
-		const breadcrumbs = wrapper.findComponent({ name: 'PongBreadcrumbs' }) as BreadcrumbsStubWrapper;
+		const breadcrumbs = wrapper.findComponent({
+			name: 'PongBreadcrumbs',
+		}) as BreadcrumbsStubWrapper;
 		const sessionPicker = wrapper.findComponent(
 			'[data-testid="session-header-switcher"]',
 		) as DropdownStubWrapper;

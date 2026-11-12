@@ -3,12 +3,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 
+import { mock } from 'vitest-mock-extended';
+
 import type { SystemAgentHostEventEmitter } from '../../system-agent-host-events';
 import { EasycodeApprovalBridge } from '../approval-bridge';
 import { EasycodeArtifactBridge, parsePatchFiles } from '../artifact-bridge';
+import { EasycodeAttachmentArtifactSink } from '../artifact-sink';
 import { EasycodeDynamicToolset } from '../dynamic-tools';
 import { EasycodeEventProjector } from '../event-projection';
 import { EasycodeThreadStateStore, planResume, type EasycodeThreadState } from '../thread-state';
+import type { AgentChatAttachmentService } from '../../../agent-chat-attachment.service';
 
 function collector(): {
 	emit: SystemAgentHostEventEmitter;
@@ -357,5 +361,145 @@ describe('thread state', () => {
 			action: 'fork',
 			reason: 'no-thread-state',
 		});
+	});
+});
+
+describe('easyCode approval contract', () => {
+	const request = {
+		approvalId: 'req-9:item-9',
+		kind: 'commandExecution' as const,
+		threadId: 'thread-1',
+		turnId: 'turn-1',
+		itemId: 'item-9',
+		command: 'node -e "console.log(1)"',
+		reason: 'run the command',
+	};
+
+	it('emits the frozen request payload and resolves ok, then decided', async () => {
+		const { emit, events } = collector();
+		const decided: string[] = [];
+		const bridge = new EasycodeApprovalBridge({
+			threadId: 'thread-1',
+			emit,
+			grants: { load: async () => new Set(), grant: async () => undefined },
+			decide: (_approvalId, decision) => {
+				decided.push(decision);
+				return true;
+			},
+		});
+		await bridge.loadGrants();
+
+		bridge.request(request);
+
+		const payload = events[0]?.payload as Record<string, unknown>;
+		expect(events[0]?.name).toBe('easycode-approval-requested');
+		expect(payload).toMatchObject({
+			approvalId: request.approvalId,
+			threadId: 'thread-1',
+			turnId: 'turn-1',
+			itemId: 'item-9',
+			requestKind: 'command',
+			command: request.command,
+			availableDecisions: ['accept', 'decline', 'acceptForSession'],
+		});
+		expect(typeof payload.expiresAtMs).toBe('number');
+
+		expect(bridge.resolve(request.approvalId, 'accept')).toEqual({ status: 'ok' });
+		expect(bridge.resolve(request.approvalId, 'accept')).toEqual({ status: 'decided' });
+		expect(decided).toEqual(['accept']);
+	});
+
+	it('returns the expired state after the deadline', async () => {
+		const { emit } = collector();
+		const bridge = new EasycodeApprovalBridge({
+			threadId: 'thread-1',
+			emit,
+			grants: { load: async () => new Set(), grant: async () => undefined },
+			decide: () => true,
+			timeoutMs: 1,
+		});
+		await bridge.loadGrants();
+		bridge.request(request);
+		await new Promise((resolve) => setTimeout(resolve, 10));
+
+		expect(bridge.resolve(request.approvalId, 'accept')).toEqual({ status: 'expired' });
+	});
+
+	it('sends the collected answers of an input request', async () => {
+		const { emit } = collector();
+		const answersSent: Array<Record<string, { answers: string[] }>> = [];
+		const decisions: string[] = [];
+		const bridge = new EasycodeApprovalBridge({
+			threadId: 'thread-1',
+			emit,
+			grants: { load: async () => new Set(), grant: async () => undefined },
+			decide: (_approvalId, decision) => {
+				decisions.push(decision);
+				return true;
+			},
+			answerUserInput: (_approvalId, answers) => {
+				answersSent.push(answers);
+				return true;
+			},
+		});
+		await bridge.loadGrants();
+		bridge.request({
+			approvalId: 'req-input:item-input',
+			kind: 'userInput',
+			threadId: 'thread-1',
+			turnId: 'turn-1',
+			itemId: 'item-input',
+			command: null,
+			reason: null,
+			questions: [
+				{
+					id: 'q1',
+					header: 'Pick one',
+					question: 'Which environment?',
+					options: [{ label: 'staging' }, { label: 'production' }],
+				},
+			],
+		});
+
+		const outcome = bridge.resolve('req-input:item-input', 'accept', {
+			q1: ['staging'],
+		});
+
+		expect(outcome).toEqual({ status: 'ok' });
+		expect(answersSent).toEqual([{ q1: { answers: ['staging'] } }]);
+		expect(decisions).toEqual([]);
+	});
+});
+
+describe('EasycodeAttachmentArtifactSink', () => {
+	it('stores the patch through the attachment service with the content hash', async () => {
+		const attachments = mock<AgentChatAttachmentService>();
+		attachments.storeInbound.mockResolvedValue({ id: 'attachment-1' } as never);
+		const sink = new EasycodeAttachmentArtifactSink(attachments, {
+			agentId: 'easycode',
+			projectId: 'project-1',
+			threadId: 'thread-1',
+			resourceId: 'system-chat:thread-1',
+		});
+		const bytes = Buffer.from('diff --git a/a b/a\n');
+
+		const stored = await sink.store({
+			bytes,
+			fileName: 'patch.patch',
+			mimeType: 'text/x-diff',
+		});
+
+		expect(stored).toEqual({ fileId: 'attachment-1' });
+		expect(attachments.storeInbound).toHaveBeenCalledWith(
+			expect.objectContaining({
+				agentId: 'easycode',
+				projectId: 'project-1',
+				threadId: 'thread-1',
+				resourceId: 'system-chat:thread-1',
+				source: 'tool',
+				fileName: 'patch.patch',
+				contentHash: createHash('sha256').update(bytes).digest('hex'),
+			}),
+		);
 	});
 });

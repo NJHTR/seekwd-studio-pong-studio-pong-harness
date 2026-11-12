@@ -16,9 +16,13 @@ import { ProjectTypes } from '@/features/collaboration/projects/projects.types';
 import { INSTANCE_AI_VIEW } from '@/features/ai/instanceAi/constants';
 
 import { AGENT_PONG_CHAT_VIEW } from '../../constants';
+import { easycodeApprovalExtensions } from '../../approval/easycodeApproval';
 import { AGENT_SUB_AGENT_NAMES_KEY } from '../../components/agentChatInjectionKeys';
 import { useAgentPongChatThreadsStore } from '../pongChatThreads.store';
-import { consumePendingPongChatMessage, stashPendingPongChatMessage } from '../pendingPongChatMessage';
+import {
+	consumePendingPongChatMessage,
+	stashPendingPongChatMessage,
+} from '../pendingPongChatMessage';
 import AgentPongChatView from '../AgentPongChatView.vue';
 
 const getPongChatAgentMock = vi.fn();
@@ -111,6 +115,7 @@ function renderView(
 						'channel',
 						'backgroundJobsActive',
 						'centerEmptyState',
+						'interactionExtensions',
 					],
 					emits: ['session-created', 'update:streaming', 'first-user-message', 'agent-unavailable'],
 					setup: () => ({ subAgentNames: inject(AGENT_SUB_AGENT_NAMES_KEY) }),
@@ -285,6 +290,14 @@ describe('AgentPongChatView', () => {
 		});
 	});
 
+	it('registers the easyCode approval card in the chat interaction extensions', async () => {
+		const wrapper = renderView();
+		await flushPromises();
+
+		const panel = wrapper.findComponent({ name: 'AgentChatPanel' });
+		expect(panel.props('interactionExtensions')).toEqual(easycodeApprovalExtensions);
+	});
+
 	it('shows "Personal" with a project icon for the personal project', async () => {
 		const personalProject = createTestProject({ id: 'project-1', type: ProjectTypes.Personal });
 		const wrapper = renderView({}, (store) => {
@@ -349,7 +362,11 @@ describe('AgentPongChatView', () => {
 		await flushPromises();
 		expect(wrapper.find('[data-testid="agent-pong-chat-unavailable"]').exists()).toBe(true);
 
-		getPongChatAgentMock.mockResolvedValueOnce({ ...agentItem, id: 'agent-2', name: 'Other Agent' });
+		getPongChatAgentMock.mockResolvedValueOnce({
+			...agentItem,
+			id: 'agent-2',
+			name: 'Other Agent',
+		});
 		await wrapper.setProps({ agentId: 'agent-2' });
 		await flushPromises();
 

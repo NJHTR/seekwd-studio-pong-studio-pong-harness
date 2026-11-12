@@ -4,24 +4,35 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import type { Logger } from '@pong/backend-common';
 import type { StreamChunk } from '@pong/agents';
+import type { Logger } from '@pong/backend-common';
+import type { AuthenticatedRequest, User } from '@pong/db';
 import { resolveDefaultExePath } from '@pong/easycode-runtime';
+import { mock } from 'vitest-mock-extended';
 
+import type { AgentChatAttachmentService } from '../../../agent-chat-attachment.service';
+import type { AgentChatExecutionService } from '../../../agent-chat-execution.service';
+import type { AgentChatRelayService } from '../../../agent-chat-relay.service';
+import type { AgentExecutionOrchestratorService } from '../../../agent-execution-orchestrator.service';
+import type { AgentMessageQueueService } from '../../../agent-message-queue.service';
+import type { AgentExecutionThread } from '../../../entities/agent-execution-thread.entity';
+import type { PONGCheckpointStorage } from '../../../integrations/pong-checkpoint-storage';
+import type { PongMemory } from '../../../integrations/pong-memory';
+import { SystemAgentChatController } from '../../system-agent-chat.controller';
+import type { SystemAgentExecutionService } from '../../system-agent-execution.service';
 import { EasycodeApprovalBridge } from '../approval-bridge';
+import { EasycodeApprovalRegistry } from '../easycode-approval-registry';
 import { EasycodeArtifactBridge, type EasycodeArtifactManifest } from '../artifact-bridge';
 import { EasycodeDynamicToolset } from '../dynamic-tools';
 import { EasycodeRuntimeAgent } from '../easycode-runtime-agent';
-import type {
-	EasycodeApprovalDecision,
-	EasycodeApprovalRequest,
-	EasycodeSupervisorPort,
-} from '../easycode-supervisor.port';
+import type { EasycodeApprovalRequest, EasycodeSupervisorPort } from '../easycode-supervisor.port';
 import { EasycodeSupervisorFactoryService } from '../easycode-supervisor-factory.service';
 import { EasycodeThreadStateStore } from '../thread-state';
 
 const EXE = resolveDefaultExePath();
 const ENABLED = process.env.PONG_EASYCODE_REAL_E2E === '1' && EXE !== null;
+const THREAD_ID = 'thread-real-e2e';
+const AGENT_ID = 'easycode';
 
 const noopLogger = {
 	scoped: () => ({ debug: () => undefined, warn: () => undefined, error: () => undefined }),
@@ -38,116 +49,245 @@ async function readChunks(stream: ReadableStream<StreamChunk>): Promise<StreamCh
 }
 
 /**
- * One real easyCode task: read, write a file, run a command. It needs the real
+ * One real easyCode task that must run a shell command. It needs the real
  * binary and its model configuration, so it runs only with
- * `PONG_EASYCODE_REAL_E2E=1`. It asserts that the approval events, the artifact
- * manifest and the final stream reach the host.
+ * `PONG_EASYCODE_REAL_E2E=1`.
+ *
+ * The approval policy `untrusted` asks before every command (a test seam of the
+ * adapter). The test accepts the request through the same controller handler
+ * that the HTTP decision endpoint uses, and asserts the turn continues and
+ * finishes. It also records the host-event and notification sequence, so the
+ * report can show the real exchange.
  */
-describe.skipIf(!ENABLED)('easyCode real app-server', () => {
+describe.skipIf(!ENABLED)('easyCode real approval round-trip', () => {
 	let workspace: string;
 
 	beforeEach(async () => {
-		// Read-only makes every write an approval, so a real model must ask.
-		process.env.PONG_EASYCODE_SANDBOX = 'read-only';
-		workspace = await mkdtemp(join(tmpdir(), 'pong-easycode-e2e-'));
-		await writeFile(join(workspace, 'README.md'), 'the pong e2e workspace\n', 'utf8');
+		process.env.PONG_EASYCODE_APPROVAL_POLICY = 'untrusted';
+		delete process.env.PONG_EASYCODE_SANDBOX;
+		workspace = await mkdtemp(join(tmpdir(), 'pong-easycode-approval-'));
+		await writeFile(join(workspace, 'README.md'), 'the pong approval workspace\n', 'utf8');
 		execFileSync('git', ['init'], { cwd: workspace, windowsHide: true });
 	});
 
 	afterEach(async () => {
-		delete process.env.PONG_EASYCODE_SANDBOX;
+		delete process.env.PONG_EASYCODE_APPROVAL_POLICY;
 		await rm(workspace, { recursive: true, force: true });
 	});
 
-	it('runs one read-modify-run task with a visible approval', async () => {
-		const emitter = {
-			events: [] as Array<{ name: string; payload: unknown }>,
-			emit: (name: string, payload?: unknown) => {
-				emitter.events.push({ name, payload });
-			},
-		};
+	it('asks for the command, accepts it through the endpoint, and finishes', async () => {
+		const events: Array<{ name: string; payload: unknown }> = [];
+		const notifications: string[] = [];
 		const approvals: EasycodeApprovalRequest[] = [];
-		const decisions: EasycodeApprovalDecision[] = [];
+		const decisionRoundtripsMs: number[] = [];
 		let supervisor: EasycodeSupervisorPort | null = null;
+
 		const bridge = new EasycodeApprovalBridge({
-			threadId: 'real-e2e',
-			emit: emitter.emit as never,
-			grants: { load: async () => new Set(), grant: async () => undefined },
-			decide: (approvalId, decision) => {
-				decisions.push(decision);
-				return supervisor?.decideApproval(approvalId, decision) ?? false;
+			threadId: THREAD_ID,
+			emit: (name, payload) => {
+				events.push({ name, payload });
 			},
+			grants: { load: async () => new Set(), grant: async () => undefined },
+			decide: (approvalId, decision) => supervisor?.decideApproval(approvalId, decision) ?? false,
 			timeoutMs: 120_000,
 		});
 		await bridge.loadGrants();
+
+		const registry = new EasycodeApprovalRegistry();
+		registry.register(THREAD_ID, bridge);
+		const systemAgents = mock<SystemAgentExecutionService>();
+		systemAgents.getUsableThread.mockResolvedValue({
+			id: THREAD_ID,
+			projectId: 'project-1',
+		} as AgentExecutionThread);
+		const controller = new SystemAgentChatController(
+			systemAgents,
+			mock<AgentChatRelayService>(),
+			mock<AgentMessageQueueService>(),
+			mock<AgentChatExecutionService>(),
+			mock<AgentExecutionOrchestratorService>(),
+			mock<PONGCheckpointStorage>(),
+			mock<AgentChatAttachmentService>(),
+			mock<PongMemory>(),
+			registry,
+		);
+		const httpRequest = { user: { id: 'user-1' } as User } as unknown as AuthenticatedRequest;
+
 		const toolset = new EasycodeDynamicToolset({
-			threadId: 'real-e2e',
+			threadId: THREAD_ID,
 			tools: [],
 			approver: { ask: async () => 'accept' },
-			emit: emitter.emit as never,
 		});
 		const artifacts = new EasycodeArtifactBridge({
-			threadId: 'real-e2e',
-			emit: emitter.emit as never,
-			// Test sink: the bytes exist on disk, so the manifest is checkable.
+			threadId: THREAD_ID,
+			emit: (name, payload) => {
+				events.push({ name, payload });
+			},
 			sink: {
 				store: async ({ bytes }) => {
 					const sha = createHash('sha256').update(bytes).digest('hex');
-					await writeFile(join(workspace, `real-e2e-${sha}.patch`), bytes);
+					await writeFile(join(workspace, `approval-${sha}.patch`), bytes);
 					return { fileId: `local:${sha}` };
 				},
 			},
 		});
 		const factory = new EasycodeSupervisorFactoryService(noopLogger);
 		supervisor = factory.create({
-			threadId: 'real-e2e',
+			threadId: THREAD_ID,
 			cwd: workspace,
 			exePath: EXE ?? '',
 			handlers: {
 				onApprovalRequest: (request) => {
 					approvals.push(request);
-					// Accept everything at once, as an interactive user would.
-					setTimeout(() => bridge.resolve(request.approvalId, 'accept'), 20);
+					bridge.request(request);
 				},
 				onDynamicToolCall: async (call) => await toolset.handle(call),
 			},
 		});
 		const agent = new EasycodeRuntimeAgent({
-			threadId: 'real-e2e',
+			threadId: THREAD_ID,
 			cwd: workspace,
 			supervisor,
 			toolset,
 			artifactBridge: artifacts,
 			approvalBridge: bridge,
 			threadStateStore: EasycodeThreadStateStore.forHome(supervisor.easycodeHome),
-			emitHostEvent: emitter.emit as never,
+			emitHostEvent: (name, payload) => {
+				events.push({ name, payload });
+			},
 		});
 
 		await agent.prepare();
-		const run = await agent.stream(
-			"Do these steps in the current directory:\n1. Create a file named hello.txt with the text OK.\n2. Run the command \"node -e \\\"require('fs').readFileSync('hello.txt','utf8'); console.log(1)\\\"\" .\nThen reply with the single word DONE.",
-		);
-		const chunks = await readChunks(run.stream);
-		await agent.close();
 
-		const finish = chunks.at(-1);
-		expect(finish).toMatchObject({ type: 'finish' });
-		expect(approvals.length).toBeGreaterThan(0);
-		expect(decisions.length).toBeGreaterThan(0);
-		const requested = emitter.events.find((event) => event.name === 'easycode-approval-requested')
-			?.payload as { approvalId?: string; requestKind?: string; expiresAtMs?: number } | undefined;
-		expect(requested?.approvalId).toEqual(approvals[0]?.approvalId);
-		expect(typeof requested?.expiresAtMs).toBe('number');
-		const artifact = emitter.events.find((event) => event.name === 'easycode-artifact')?.payload as
-			| EasycodeArtifactManifest
-			| undefined;
-		expect(artifact?.sha256).toMatch(/^[a-f0-9]{64}$/);
-		expect(artifact?.threadId).toBe('real-e2e');
-		expect(artifact?.fileId).toMatch(/^local:[a-f0-9]{64}$/);
-		// Record the observable sequence for the report.
-		const sequence = emitter.events.map((event) => event.name);
-		expect(sequence).toContain('easycode-approval-requested');
-		expect(sequence).toContain('easycode-approval-decided');
-		expect(sequence).toContain('easycode-artifact');
-	}, 240_000);
+		// Answer each real approval through the controller handler and record the
+		// round-trip, as the UI does through the HTTP endpoint.
+		let answering = false;
+		const answerPending = async () => {
+			if (answering) return;
+			const pending = bridge.pendingList();
+			if (pending.length === 0) return;
+			answering = true;
+			const receivedAt = Date.now();
+			for (const entry of pending) {
+				const result = await controller.decideApproval(
+					httpRequest,
+					AGENT_ID,
+					THREAD_ID,
+					entry.approvalId,
+					{ decision: 'accept' },
+				);
+				decisionRoundtripsMs.push(Date.now() - receivedAt);
+				expect(result).toEqual({ ok: true });
+			}
+			answering = false;
+		};
+		const timer = setInterval(() => {
+			void answerPending();
+		}, 15);
+		timer.unref();
+
+		// Record the raw app-server notifications and host events, so a run that
+		// asks for no approval still gives evidence of what the model did.
+		supervisor.onNotification((notification) => {
+			notifications.push(notification.method);
+			if (notification.method === 'turn/completed' || notification.method === 'turn/failed') {
+				events.push({ name: `raw:${notification.method}`, payload: notification.params });
+			}
+			if (notification.method === 'item/completed') {
+				events.push({ name: 'raw:item/completed', payload: notification.params });
+			}
+		});
+
+		try {
+			const run = await agent.stream(
+				[
+					'You must use the shell to run exactly this command in the current directory:',
+					'node -e "console.log(\'pong-approval-e2e\')"',
+					'After the command succeeds, reply with the single word DONE. Do not change any file.',
+				].join('\n'),
+			);
+			const chunks = await readChunks(run.stream);
+			const finish = chunks.at(-1);
+			const text = chunks
+				.filter(
+					(chunk): chunk is Extract<StreamChunk, { type: 'text-delta' }> =>
+						chunk.type === 'text-delta',
+				)
+				.map((chunk) => chunk.delta)
+				.join('');
+			console.log(
+				JSON.stringify(
+					{
+						finish,
+						text,
+						approvals: approvals.map((entry) => ({
+							approvalId: entry.approvalId,
+							kind: entry.kind,
+							command: entry.command,
+						})),
+						decisionRoundtripsMs,
+						hostEvents: events.map((event) => event.name),
+						notifications,
+						raw: events.filter((event) => event.name.startsWith('raw:')),
+					},
+					null,
+					2,
+				),
+			);
+			expect(finish).toMatchObject({ type: 'finish' });
+			expect(finish).toMatchObject({ type: 'finish', finishReason: 'stop' });
+			expect(approvals.length).toBeGreaterThan(0);
+			const approval = approvals[0];
+			expect(approval?.kind).toBe('commandExecution');
+			expect(decisionRoundtripsMs.length).toBeGreaterThan(0);
+			expect(decisionRoundtripsMs[0]).toBeLessThan(5_000);
+
+			const requested = events.find((event) => event.name === 'easycode-approval-requested')
+				?.payload as
+				| { approvalId?: string; requestKind?: string; expiresAtMs?: number }
+				| undefined;
+			expect(requested?.requestKind).toBe('command');
+			expect(typeof requested?.expiresAtMs).toBe('number');
+			const decided = events.find((event) => event.name === 'easycode-approval-decided');
+			expect(decided).toBeDefined();
+
+			const artifact = events.find((event) => event.name === 'easycode-artifact')?.payload as
+				| EasycodeArtifactManifest
+				| undefined;
+			if (artifact !== undefined) {
+				expect(artifact.sha256).toMatch(/^[a-f0-9]{64}$/);
+				expect(artifact.threadId).toBe(THREAD_ID);
+			}
+
+			// Diagnostics for the report.
+			console.log(
+				JSON.stringify(
+					{
+						approvals: approvals.map((entry) => ({
+							approvalId: entry.approvalId,
+							kind: entry.kind,
+							command: entry.command,
+							reason: entry.reason,
+						})),
+						decisionRoundtripsMs,
+						events: events.map((event) => event.name),
+						notifications,
+						text: chunks
+							.filter(
+								(chunk): chunk is Extract<StreamChunk, { type: 'text-delta' }> =>
+									chunk.type === 'text-delta',
+							)
+							.map((chunk) => chunk.delta)
+							.join(''),
+					},
+					null,
+					2,
+				),
+			);
+			expect(notifications).toBeDefined();
+		} finally {
+			clearInterval(timer);
+			await agent.close();
+		}
+	}, 300_000);
 });

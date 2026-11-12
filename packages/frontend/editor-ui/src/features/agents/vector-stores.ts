@@ -1,4 +1,7 @@
-import { AGENT_VECTOR_STORE_CREDENTIAL_TYPES, type AgentVectorStoreProvider } from '@pong/api-types';
+import {
+	AGENT_VECTOR_STORE_CREDENTIAL_TYPES,
+	type AgentVectorStoreProvider,
+} from '@pong/api-types';
 
 export interface AgentVectorStoreProviderDefinition {
 	displayName: string;

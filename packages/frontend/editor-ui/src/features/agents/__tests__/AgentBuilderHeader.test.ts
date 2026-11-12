@@ -203,7 +203,9 @@ describe('AgentBuilderHeader', () => {
 		const wrapper = mountHeader();
 		for (const testId of ['agent-documentation-help', 'agent-documentation-link']) {
 			const link = wrapper.get(`[data-testid="${testId}"]`);
-			expect(link.attributes('href')).toBe('https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness');
+			expect(link.attributes('href')).toBe(
+				'https://github.com/NJHTR/seekwd-studio-pong-studio-pong-harness',
+			);
 			expect(link.attributes('target')).toBe('_blank');
 		}
 		expect(wrapper.get('[data-testid="agent-documentation-help"]').attributes('aria-label')).toBe(

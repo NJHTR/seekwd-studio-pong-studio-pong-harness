@@ -47,7 +47,9 @@ const canExecute = ref(true);
 const stopSession = vi.hoisted(() => vi.fn());
 const sendSession = vi.fn();
 
-vi.mock('@pong/composables/useClipboard', () => ({ useClipboard: () => ({ copy: clipboardCopy }) }));
+vi.mock('@pong/composables/useClipboard', () => ({
+	useClipboard: () => ({ copy: clipboardCopy }),
+}));
 vi.mock('@pong/composables/useToast', () => ({ useToast: () => ({ showError, showMessage }) }));
 vi.mock('../composables/useAgentPermissions', () => ({
 	useAgentPermissions: () => ({ canUpdate: canDeleteSession, canExecute }),

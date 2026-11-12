@@ -3,7 +3,10 @@ import { useSettingsStore } from '@pong/stores/settings.store';
 import { createPinia, setActivePinia } from 'pinia';
 
 import { usePostHog } from '@/app/stores/posthog.store';
-import { useAgentsPongChatFlag, useAgentsPongChatVariant } from '../composables/useAgentsPongChatFlag';
+import {
+	useAgentsPongChatFlag,
+	useAgentsPongChatVariant,
+} from '../composables/useAgentsPongChatFlag';
 
 describe('useAgentsPongChatFlag', () => {
 	beforeEach(() => setActivePinia(createPinia()));

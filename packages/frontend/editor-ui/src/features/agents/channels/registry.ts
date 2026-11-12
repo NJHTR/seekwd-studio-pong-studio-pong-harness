@@ -1,4 +1,7 @@
-import { PONG_CHAT_INTEGRATION_TYPE, type AgentIntegrationDisconnectWarning } from '@pong/api-types';
+import {
+	PONG_CHAT_INTEGRATION_TYPE,
+	type AgentIntegrationDisconnectWarning,
+} from '@pong/api-types';
 import { PongButton } from '@pong/design-system';
 import { h, readonly, ref } from 'vue';
 

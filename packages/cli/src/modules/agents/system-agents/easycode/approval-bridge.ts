@@ -343,16 +343,20 @@ export class EasycodeApprovalBridge {
 			reason: request.reason,
 			availableDecisions: AVAILABLE_DECISIONS,
 			expiresAtMs: deadlineAtMs,
+			...(input?.questionId !== undefined ? { questionId: input.questionId } : {}),
 			...(input?.question !== undefined ? { question: input.question } : {}),
 			...(input?.options !== undefined ? { options: input.options } : {}),
 		});
 	}
 }
 
-function readQuestion(questions: unknown): { question: string; options: string[] } | undefined {
+function readQuestion(
+	questions: unknown,
+): { questionId: string; question: string; options: string[] } | undefined {
 	if (!Array.isArray(questions) || questions.length === 0) return undefined;
 	const first: unknown = questions[0];
 	if (typeof first !== 'object' || first === null) return undefined;
+	const id = Reflect.get(first, 'id');
 	const header = Reflect.get(first, 'header');
 	const question = Reflect.get(first, 'question');
 	const options = Reflect.get(first, 'options');
@@ -364,6 +368,8 @@ function readQuestion(questions: unknown): { question: string; options: string[]
 				.filter((label): label is string => typeof label === 'string')
 		: [];
 	return {
+		// easyCode keys answers by question id; the UI sends the same id back.
+		questionId: typeof id === 'string' && id.length > 0 ? id : '0',
 		question: typeof question === 'string' ? question : typeof header === 'string' ? header : '',
 		options: labels,
 	};

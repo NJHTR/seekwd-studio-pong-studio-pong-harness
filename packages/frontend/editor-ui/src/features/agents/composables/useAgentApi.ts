@@ -64,6 +64,11 @@ import type {
 	AgentJsonConfig,
 	CustomToolEntry,
 } from '../types';
+import type {
+	EasycodeApprovalAnswers,
+	EasycodeApprovalDecision,
+	EasycodeApprovalDecisionResponse,
+} from '../approval/easycodeApproval.types';
 
 export async function getAgentsSettings(context: IRestApiContext): Promise<AgentsSettingsDto> {
 	return await makeRestApiRequest(context, 'GET', '/agents/settings');
@@ -1113,6 +1118,32 @@ export const deleteSystemAgentThread = async (
 		`${agentChatPath('', agentId, 'system')}/${encodeURIComponent(threadId)}`,
 	);
 };
+
+/**
+ * Answers one pending approval of a system agent thread. The route, the body
+ * and its statuses follow `docs/architecture/m1c-approval-contract.md`: a 409
+ * means that the approval was already decided or expired, and a 404 means that
+ * it does not exist for this thread.
+ */
+export const decideEasycodeApproval = async (
+	context: IRestApiContext,
+	options: {
+		agentId: string;
+		threadId: string;
+		approvalId: string;
+		decision: EasycodeApprovalDecision;
+		answers?: EasycodeApprovalAnswers;
+	},
+): Promise<EasycodeApprovalDecisionResponse> =>
+	await makeRestApiRequest<EasycodeApprovalDecisionResponse>(
+		context,
+		'POST',
+		`/agents/system/${encodeURIComponent(options.agentId)}/threads/${encodeURIComponent(options.threadId)}/approvals/${encodeURIComponent(options.approvalId)}`,
+		{
+			decision: options.decision,
+			...(options.answers !== undefined ? { answers: options.answers } : {}),
+		},
+	);
 
 /** Files of a preview or pong Chat session, for the session files list. */
 export const getSessionFiles = async (

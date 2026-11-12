@@ -1,4 +1,8 @@
-import type { AgentConfigValidationIssue, AgentJsonTaskConfig, AgentTaskDto } from '@pong/api-types';
+import type {
+	AgentConfigValidationIssue,
+	AgentJsonTaskConfig,
+	AgentTaskDto,
+} from '@pong/api-types';
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
 import { screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';

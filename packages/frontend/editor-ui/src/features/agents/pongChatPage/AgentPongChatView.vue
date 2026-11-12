@@ -13,6 +13,7 @@ import {
 	AGENT_PONG_CHAT_VIEW,
 	AGENT_PONG_CHAT_RECENT_THREADS_LIMIT,
 } from '../constants';
+import { easycodeApprovalExtensions } from '../approval/easycodeApproval';
 import { getPongChatAgent } from '../composables/useAgentApi';
 import { useAgentPermissions } from '../composables/useAgentPermissions';
 import { useAgentProjectBreadcrumb } from '../composables/useAgentProjectBreadcrumb';
@@ -171,6 +172,9 @@ const subAgentNameById = computed(() => {
 });
 provide(AGENT_SUB_AGENT_NAMES_KEY, subAgentNameById);
 
+/** Host cards of this chat, such as the decisions of the easyCode system agent. */
+const interactionExtensions = easycodeApprovalExtensions;
+
 const agentConfig = computed<AgentJsonConfig | null>(() => {
 	const current = agent.value;
 	if (!current) return null;
@@ -244,6 +248,7 @@ const agentPageRoute = computed(() => {
 			:connected-triggers="[]"
 			channel="pong-chat"
 			:background-jobs-active="true"
+			:interaction-extensions="interactionExtensions"
 			center-empty-state
 			@session-created="onSessionCreated"
 			@update:streaming="onStreamingChange"

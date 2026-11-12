@@ -63,7 +63,9 @@ const aiGatewayState = vi.hoisted(() => ({
 	balance: { value: undefined as number | undefined },
 	fetchWallet: vi.fn(),
 	fetchConfig: vi.fn(),
-	creditsLabelKey: { value: 'generic.freeCredits' as 'generic.freeCredits' | 'generic.pongCredits' },
+	creditsLabelKey: {
+		value: 'generic.freeCredits' as 'generic.freeCredits' | 'generic.pongCredits',
+	},
 }));
 const baseText = vi.hoisted(() =>
 	vi.fn((key: string, options?: { interpolate?: Record<string, string | number> }) => {

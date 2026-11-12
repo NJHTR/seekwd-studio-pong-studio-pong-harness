@@ -100,7 +100,11 @@ describe('summariseToolCall — pong_chat_action', () => {
 
 	it('falls back to the raw value when no component matches', () => {
 		expect(
-			summariseToolCall(PONG_CHAT_ACTION_TOOL_NAME, { type: 'button', value: 'unknown' }, cardInput),
+			summariseToolCall(
+				PONG_CHAT_ACTION_TOOL_NAME,
+				{ type: 'button', value: 'unknown' },
+				cardInput,
+			),
 		).toBe('unknown');
 	});
 

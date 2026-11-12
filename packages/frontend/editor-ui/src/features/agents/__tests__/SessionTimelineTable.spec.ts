@@ -310,7 +310,8 @@ describe('SessionTimelineTable', () => {
 			rows[0]
 				.findAllComponents(PongIcon)
 				.some(
-					(icon: VueWrapper<InstanceType<typeof PongIcon>>) => icon.props('icon') === 'circle-alert',
+					(icon: VueWrapper<InstanceType<typeof PongIcon>>) =>
+						icon.props('icon') === 'circle-alert',
 				),
 		).toBe(false);
 		expect(rows[0].text()).toContain('Protected action');
@@ -347,7 +348,8 @@ describe('SessionTimelineTable', () => {
 			const errorIcon = rows[0]
 				.findAllComponents(PongIcon)
 				.find(
-					(icon: VueWrapper<InstanceType<typeof PongIcon>>) => icon.props('icon') === 'circle-alert',
+					(icon: VueWrapper<InstanceType<typeof PongIcon>>) =>
+						icon.props('icon') === 'circle-alert',
 				);
 			expect(errorIcon?.props('color')).toBe('danger');
 			expect(
@@ -449,7 +451,8 @@ describe('SessionTimelineTable', () => {
 			const errorIcon = w
 				.findAllComponents(PongIcon)
 				.find(
-					(icon: VueWrapper<InstanceType<typeof PongIcon>>) => icon.props('icon') === 'circle-alert',
+					(icon: VueWrapper<InstanceType<typeof PongIcon>>) =>
+						icon.props('icon') === 'circle-alert',
 				);
 			expect(errorIcon?.props('color')).toBe('danger');
 		} else {

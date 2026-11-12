@@ -8,6 +8,7 @@ import {
 	createAgent,
 	deletePongChatThread,
 	deleteSystemAgentThread,
+	decideEasycodeApproval,
 	getAgentBackgroundJobs,
 	getAgentBudgetSpend,
 	getAgentChatQueue,
@@ -252,6 +253,44 @@ describe('useAgentApi', () => {
 				'/agents/system/assistant/chat/thread%2F1',
 			);
 		});
+
+		it('sends an approval decision to the m1c endpoint', async () => {
+			vi.mocked(makeRestApiRequest).mockResolvedValueOnce({ ok: true });
+
+			const response = await decideEasycodeApproval(restApiContext, {
+				agentId: 'easycode',
+				threadId: 'thread/1',
+				approvalId: 'approval/1',
+				decision: 'acceptForSession',
+			});
+
+			expect(response).toEqual({ ok: true });
+			expect(makeRestApiRequest).toHaveBeenCalledWith(
+				restApiContext,
+				'POST',
+				'/agents/system/easycode/threads/thread%2F1/approvals/approval%2F1',
+				{ decision: 'acceptForSession' },
+			);
+		});
+
+		it('adds the answers of an input approval to the decision body', async () => {
+			vi.mocked(makeRestApiRequest).mockResolvedValueOnce({ ok: true });
+
+			await decideEasycodeApproval(restApiContext, {
+				agentId: 'easycode',
+				threadId: 'thread-1',
+				approvalId: 'approval-1',
+				decision: 'accept',
+				answers: { '0': ['Postgres'] },
+			});
+
+			expect(makeRestApiRequest).toHaveBeenCalledWith(
+				restApiContext,
+				'POST',
+				'/agents/system/easycode/threads/thread-1/approvals/approval-1',
+				{ decision: 'accept', answers: { '0': ['Postgres'] } },
+			);
+		});
 	});
 
 	describe('background task routes on both channels', () => {
@@ -427,7 +466,12 @@ describe('useAgentApi', () => {
 				{ targetQueueId: 'queue-2', expectedQueueIds: ['queue-1', 'queue-2'] },
 				'pong-chat',
 			);
-			await steerAgentQueuedMessage(...args, 'queue-1', { executionId: 'execution-1' }, 'pong-chat');
+			await steerAgentQueuedMessage(
+				...args,
+				'queue-1',
+				{ executionId: 'execution-1' },
+				'pong-chat',
+			);
 			await getChatMessages(...args, 'pong-chat');
 			await cancelAgentChatExecution(...args, 'execution-1', 'pong-chat');
 			await cancelAgentChatRun(restApiContext, 'project-1', 'agent-1', 'run-1', 'pong-chat');

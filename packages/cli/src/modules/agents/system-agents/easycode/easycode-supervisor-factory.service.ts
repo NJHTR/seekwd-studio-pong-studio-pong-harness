@@ -52,6 +52,17 @@ function resolveSandboxMode(): 'read-only' | 'workspace-write' | 'danger-full-ac
 }
 
 /**
+ * Approval policy of the app-server. `untrusted` asks before every command
+ * (Codex `AskForApproval::UnlessTrusted`), so a test can force a real approval.
+ * `PONG_EASYCODE_APPROVAL_POLICY=untrusted` is a test seam only.
+ */
+function resolveApprovalPolicy(): 'untrusted' | 'on-request' | 'never' {
+	const value = process.env.PONG_EASYCODE_APPROVAL_POLICY;
+	if (value === 'untrusted' || value === 'never') return value;
+	return 'on-request';
+}
+
+/**
  * Adapts `AppServerSupervisor` to the narrow port. The supervisor owns the
  * child process, the approval broker and the dynamic tool dispatch; this
  * adapter only maps the calls and payload types.
@@ -74,7 +85,7 @@ class SupervisorPortAdapter implements EasycodeSupervisorPort {
 		const response = await this.supervisor.startThread({
 			cwd: params.cwd,
 			model: params.model ?? null,
-			approvalPolicy: 'on-request',
+			approvalPolicy: resolveApprovalPolicy(),
 			approvalsReviewer: 'user',
 			sandbox: resolveSandboxMode(),
 			developerInstructions: params.developerInstructions ?? null,
@@ -87,7 +98,7 @@ class SupervisorPortAdapter implements EasycodeSupervisorPort {
 		const response = await this.supervisor.resumeThread({
 			threadId: params.threadId,
 			cwd: this.cwd,
-			approvalPolicy: 'on-request',
+			approvalPolicy: resolveApprovalPolicy(),
 			sandbox: resolveSandboxMode(),
 		});
 		return { threadId: response.thread.id };
@@ -101,7 +112,7 @@ class SupervisorPortAdapter implements EasycodeSupervisorPort {
 		const response = await this.supervisor.startTurn(threadId, prompt, {
 			model: params.model,
 			cwd: params.cwd,
-			approvalPolicy: 'on-request',
+			approvalPolicy: resolveApprovalPolicy(),
 			sandboxPolicy: resolveSandboxPolicy(params.cwd),
 		});
 		return { turnId: response.turn.id };
