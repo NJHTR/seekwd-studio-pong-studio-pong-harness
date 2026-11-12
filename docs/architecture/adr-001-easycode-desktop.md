@@ -348,3 +348,14 @@ spawn easycode app-server --listen stdio://   （cwd = 工作区根）
 ### 10.2 多 Agent 协议决策
 
 A/B 首轮样本不足（A n=2、B n=1，方差主导，且沙箱不限制读导致 A 臂可访问 producer workspace）。**在 task-14（隔离 + 固定 artifact + ≥3 runs/arm）给出数据前，不冻结多 Agent 协议实现**。M1 可先做单 agent 产品化。
+### 10.3 A/B 实测后的多 Agent 协议修正（2026-11-13）
+
+`docs/poc/m1-ab-baseline.md` 的实测（small: A/B 各 3；large: A 3 / B 5）改变了 ADR-05 的"一刀切"设计：
+
+| Payload | 自由文本 handoff (A) | 结构化 artifact 引用 (B) | 决策 |
+|---|---|---|---|
+| small（1 文件、~180B、追加 3 行） | 首次 3/3；46,571 tokens；27.7 s | 首次 3/3；83,665 tokens；32.8 s | **默认自由文本**（B +80% tokens、+19% 时延） |
+| large（10 文件、~1.7KB diff） | 首次 0/3（2/3 需返工且伴随越界读）；804,041 tokens；213.3 s | 首次 5/5；140,929 tokens；61.6 s | **强制 artifact 引用 + conclusion**（≈1/5.7 tokens、1/3.5 时延） |
+
+- 协议 v0 增加**自适应 handoff 选择**：默认 prose；超过容量阈值或要求逐字节/diff/manifest 保真时升级为 artifact 引用。阈值先按 prose ≤600 字符（fixture 值），M2 用 ≥10 runs/臂/档校准。
+- **读隔离是硬约束**：easyCode `workspaceWrite` 只限制写，读不受限；实测 consumer 可从兄弟 agent 的 rollout JSONL 恢复变更值。M1 退出标准加入"每次 run 独立 EASYCODE_HOME + producer workspace 用后即删 + session 日志隔离"；严格安全边界需 OS 级隔离（独立用户/容器/AppContainer），列入 M4 决策。

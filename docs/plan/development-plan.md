@@ -219,3 +219,10 @@ Sprint 出口：M0 九条验收全绿，并形成 `docs/poc/m0-results.md` 与 g
   2. task-14：A/B 样本不足，重测后再决定多 Agent 协议是否进入 M2。
   3. 冷启动干净机未复测；M1 安装包预热方案（`docs/poc/m0-cold-start.md`：P0 安装 self-test -2.39 s；P1 预置 DB/缓存；P2 bundling 需 PoC）。
 - M1 启动条件：task-13 完成即可开始单 agent 产品化；task-14 与 M1 并行，不阻塞 M1。
+---
+
+## 12. M1 退出标准补充（A/B 实测，2026-11-13）
+
+- 协议 handoff 采用自适应：默认 prose，超阈值/需保真时 artifact 引用（见 ADR-001 §10.3）。
+- 隔离：每次 run 独立 `EASYCODE_HOME`、producer workspace 用后即删、session 日志隔离；严格 OS 级读隔离作为 M4 决策项，M1 需写清残余风险。
+- A/B 定量：每臂每档 ≥10 次、全部通过隔离校验，才允许把协议收益写进结论。
