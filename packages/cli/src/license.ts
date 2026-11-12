@@ -318,7 +318,11 @@ export class License implements LicenseProvider {
 	isLicensed(feature: BooleanLicenseFeature) {
 		// Local builds unlock every feature. Set `PONG_LOCAL_UNLOCKED=false` to
 		// restore normal license gating.
-		if (process.env.PONG_LOCAL_UNLOCKED !== 'false') return true;
+		if (process.env.PONG_LOCAL_UNLOCKED !== 'false') {
+			// This flag only controls the "not licensed for production" banner; a
+			// local build is not a non-production trial, so keep it off.
+			return feature !== LICENSE_FEATURES.SHOW_NON_PROD_BANNER;
+		}
 		return this.manager?.hasFeatureEnabled(feature) ?? false;
 	}
 

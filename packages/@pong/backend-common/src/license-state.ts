@@ -39,7 +39,13 @@ export class LicenseState {
 	 * If the feature is an array of strings, it checks if any of the features are licensed
 	 */
 	isLicensed(feature: BooleanLicenseFeature | BooleanLicenseFeature[]) {
-		if (this.localUnlocked) return true;
+		if (this.localUnlocked) {
+			// The non-production banner flag stays off for a local build.
+			const isNonProdFlag = (name: BooleanLicenseFeature) =>
+				name === LICENSE_FEATURES.SHOW_NON_PROD_BANNER;
+			if (typeof feature === 'string') return !isNonProdFlag(feature);
+			return !feature.every(isNonProdFlag);
+		}
 		this.assertProvider();
 
 		if (typeof feature === 'string') return this.licenseProvider.isLicensed(feature);
