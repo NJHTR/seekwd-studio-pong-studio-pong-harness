@@ -8,7 +8,6 @@ import { useI18n } from '@pong/i18n';
 import { useTelemetry } from '@pong/composables/useTelemetry';
 import RoleHoverPopover from './RoleHoverPopover.vue';
 import RoleContactAdminModal from './RoleContactAdminModal.vue';
-import CustomRolesUpgradeModal from './CustomRolesUpgradeModal.vue';
 
 interface RoleSelectOption extends SelectOptionBase<string> {
 	role: Role;
@@ -76,7 +75,6 @@ const telemetry = useTelemetry();
 
 const dropdownOpen = ref(false);
 const contactAdminModalVisible = ref(false);
-const upgradeModalVisible = ref(false);
 
 watch(dropdownOpen, (open) => {
 	if (!open) {
@@ -138,24 +136,13 @@ const roleItems = computed<SelectItem[]>(() => {
 const onRoleSelect = (value: SelectValue | undefined) => {
 	if (!value || typeof value !== 'string') return;
 	const role = [...props.systemRoles, ...props.customRoles].find((r) => r.slug === value);
-	if (role && !role.licensed) {
-		closeDropdown();
-		if (role.systemRole) {
-			emit('system-role-upgrade-needed');
-		} else {
-			upgradeModalVisible.value = true;
-		}
-		return;
-	}
 	emit('update:role', value);
 };
 
 const onAddCustomRoleClick = () => {
 	telemetry.track('User clicked add custom role from role selector');
 	closeDropdown();
-	if (!props.hasCustomRolesLicense) {
-		upgradeModalVisible.value = true;
-	} else if (!props.canManageRoles) {
+	if (!props.canManageRoles) {
 		contactAdminModalVisible.value = true;
 	} else {
 		void router.push({ name: props.addCustomRoleRouteName });
@@ -231,21 +218,6 @@ const isUnavailableRoleItem = (item: SelectOptionBase) =>
 			<template #label="{ item }">
 				<span :class="$style.sectionLabelContent">
 					{{ item.label }}
-					<PongBadge
-						v-if="
-							item.label === i18n.baseText('projects.settings.role.selector.section.custom') &&
-							!hasCustomRolesLicense
-						"
-						variant="outline"
-						:class="$style.sectionUpgradeBadge"
-						@click.stop="
-							closeDropdown();
-							upgradeModalVisible = true;
-						"
-					>
-						<PongIcon icon="lock" size="xsmall" />
-						{{ i18n.baseText('generic.upgrade') }}
-					</PongBadge>
 				</span>
 			</template>
 
@@ -267,7 +239,6 @@ const isUnavailableRoleItem = (item: SelectOptionBase) =>
 			v-model="contactAdminModalVisible"
 			:custom-roles-exist="customRoles.length > 0"
 		/>
-		<CustomRolesUpgradeModal v-model="upgradeModalVisible" />
 	</div>
 </template>
 

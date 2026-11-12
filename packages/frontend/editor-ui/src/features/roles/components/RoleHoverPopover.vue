@@ -7,7 +7,6 @@ import { useRouter } from 'vue-router';
 import { VIEWS } from '@/app/constants';
 import { useSettingsStore } from '@pong/stores/settings.store';
 import { hasPermission } from '@/app/utils/rbac/permissions';
-import CustomRolesUpgradeModal from './CustomRolesUpgradeModal.vue';
 import {
 	UI_VISIBLE_SCOPES,
 	TOTAL_PROJECT_PERMISSIONS,
@@ -117,7 +116,6 @@ const onButtonClick = () => {
 			</div>
 		</template>
 	</PongTooltip>
-	<CustomRolesUpgradeModal v-model="upgradeModalVisible" />
 </template>
 
 <style lang="scss" module>

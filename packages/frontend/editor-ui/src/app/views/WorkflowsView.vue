@@ -37,7 +37,6 @@ import {
 	MODAL_CONFIRM,
 	VIEWS,
 } from '@/app/constants';
-import { COMMUNITY_PLUS_ENROLLMENT_MODAL } from '@/features/settings/usage/usage.constants';
 import { useAITemplatesStarterCollectionStore } from '@/experiments/aiTemplatesStarterCollection/stores/aiTemplatesStarterCollection.store';
 import SuggestedWorkflowCard from '@/experiments/personalizedTemplates/components/SuggestedWorkflowCard.vue';
 import SuggestedWorkflows from '@/experiments/personalizedTemplates/components/SuggestedWorkflows.vue';
@@ -47,7 +46,6 @@ import TemplateRecommendationV2 from '@/experiments/templateRecoV2/components/Te
 import TemplateRecommendationV3 from '@/experiments/personalizedTemplatesV3/components/TemplateRecommendationV3.vue';
 import { usePersonalizedTemplatesV2Store } from '@/experiments/templateRecoV2/stores/templateRecoV2.store';
 import { usePersonalizedTemplatesV3Store } from '@/experiments/personalizedTemplatesV3/stores/personalizedTemplatesV3.store';
-import { useTrialIntroModalStore } from '@/experiments/trialIntroModal/stores/trialIntroModal.store';
 import EmptyStateLayout from '@/app/components/layouts/EmptyStateLayout.vue';
 import { useReadyToRunStore } from '@/features/workflows/readyToRun/stores/readyToRun.store';
 import { useEmptyStateDetection } from '@/features/workflows/readyToRun/composables/useEmptyStateDetection';
@@ -75,7 +73,6 @@ import { useSourceControlStore } from '@/features/integrations/sourceControl.ee/
 import { promotionEventBus } from '@pong/frontend-module-promotions';
 import { useTagsStore } from '@/features/shared/tags/tags.store';
 import { useUIStore } from '@/app/stores/ui.store';
-import { useUsageStore } from '@/features/settings/usage/usage.store';
 import { useUsersStore } from '@pong/stores/users.store';
 import { useWorkflowsStore } from '@/app/stores/workflows.store';
 import { useWorkflowsListStore } from '@/app/stores/workflowsList.store';
@@ -173,7 +170,6 @@ const tagsStore = useTagsStore();
 const foldersStore = useFoldersStore();
 const favoritesStore = useFavoritesStore();
 const posthogStore = usePostHog();
-const usageStore = useUsageStore();
 const insightsStore = useInsightsStore();
 const aiStarterTemplatesStore = useAITemplatesStarterCollectionStore();
 const personalizedTemplatesStore = usePersonalizedTemplatesStore();
@@ -182,7 +178,6 @@ const personalizedTemplatesV2Store = usePersonalizedTemplatesV2Store();
 const personalizedTemplatesV3Store = usePersonalizedTemplatesV3Store();
 const readyToRunStore = useReadyToRunStore();
 const agentListStore = useAgentListStore();
-const trialIntroModalStore = useTrialIntroModalStore();
 const typeAvailabilityPoliciesStore = useTypeAvailabilityPoliciesStore();
 
 const documentTitle = useDocumentTitle();
@@ -623,10 +618,6 @@ const canUserRegisterCommunityPlus = computed(
 	() => getResourcePermissions(usersStore.currentUser?.globalScopes).community.register,
 );
 
-const showRegisteredCommunityCTA = computed(
-	() => isSelfHostedDeployment.value && !foldersEnabled.value && canUserRegisterCommunityPlus.value,
-);
-
 const showAIStarterCollectionCallout = computed(() => {
 	return (
 		!loading.value &&
@@ -855,7 +846,6 @@ const initialize = async () => {
 		await Promise.all([
 			fetchWorkflows(),
 			workflowsListStore.fetchActiveWorkflows(),
-			usageStore.getLicenseInfo(),
 			foldersStore.fetchTotalWorkflowsAndFoldersCount(
 				route.params.projectId as string | undefined,
 				currentFolderId.value ?? undefined,
@@ -1929,13 +1919,6 @@ const renameFolder = async (folderId: string) => {
 
 const createFolderInCurrent = async () => {
 	// Show the community plus enrollment modal if the user is self-hosted, and hasn't enabled folders
-	if (showRegisteredCommunityCTA.value) {
-		uiStore.openModalWithData({
-			name: COMMUNITY_PLUS_ENROLLMENT_MODAL,
-			data: { customHeading: i18n.baseText('folders.registeredCommunity.cta.heading') },
-		});
-		return;
-	}
 	if (!currentBreadcrumbsProject.value) return;
 	const currentParent = currentFolder.value?.name || currentBreadcrumbsProjectName.value;
 	if (!currentParent) return;
@@ -2096,13 +2079,6 @@ const moveWorkflowToFolder = async (payload: {
 	sharedWithProjects?: ProjectSharingData[];
 	homeProjectId?: string;
 }) => {
-	if (showRegisteredCommunityCTA.value) {
-		uiStore.openModalWithData({
-			name: COMMUNITY_PLUS_ENROLLMENT_MODAL,
-			data: { customHeading: i18n.baseText('folders.registeredCommunity.cta.heading') },
-		});
-		return;
-	}
 	uiStore.openMoveToFolderModal(
 		'workflow',
 		{
@@ -2284,12 +2260,8 @@ const onNameSubmit = async (name: string) => {
 </script>
 
 <template>
-	<div
-		v-if="trialIntroModalStore.shouldSuppressTrialBackground"
-		data-test-id="trial-intro-background-placeholder"
-	/>
 	<ResourcesListLoadingState
-		v-else-if="deferChromeForOnboarding"
+		v-if="deferChromeForOnboarding"
 		data-test-id="workflows-onboarding-loading"
 	/>
 	<EmptyStateLayout v-else-if="shouldUseSimplifiedLayout" @click:add="addWorkflow" />

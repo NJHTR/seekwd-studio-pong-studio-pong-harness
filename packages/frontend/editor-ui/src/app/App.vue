@@ -16,7 +16,6 @@ import { useModulePushDispatcher } from '@/app/composables/useModulePushDispatch
 // Experiment cleanup (123_surface_mcp_to_claude_trial_users)
 import { useMcpDiscoveryEnrollment } from '@/experiments/surfaceMcpToClaudeTrialUsers/useMcpDiscovery';
 // EOF Experiment cleanup
-import { useTrialIntroModalAutoOpen } from '@/experiments/trialIntroModal/useTrialIntroModalAutoOpen';
 // Experiment cleanup (119_surface_assistant_on_workflow_error)
 import WorkflowErrorNudge from '@/experiments/surfaceAssistantOnWorkflowError/components/WorkflowErrorNudge.vue';
 // EOF Experiment cleanup
@@ -78,7 +77,6 @@ useBackendStatus();
 
 useModulePushDispatcher({ router });
 
-useTrialIntroModalAutoOpen();
 // Experiment cleanup (123_surface_mcp_to_claude_trial_users)
 useMcpDiscoveryEnrollment();
 // EOF Experiment cleanup

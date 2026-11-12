@@ -11,7 +11,6 @@ import {
 	countGrantedInstancePermissions,
 } from '@/features/roles/instance/instanceRoleScopes';
 import RoleSelectDropdown from '@/features/roles/components/RoleSelectDropdown.vue';
-import CustomRolesUpgradeModal from '@/features/roles/components/CustomRolesUpgradeModal.vue';
 
 const props = withDefaults(
 	defineProps<{
@@ -51,7 +50,6 @@ const customRoles = computed(() => rolesStore.customInstanceRoles);
 
 const permissionCountFor = (role: Role) => countGrantedInstancePermissions(role.scopes ?? []);
 
-const upgradeModalVisible = ref(false);
 
 const onRoleUpdate = (role: string) => {
 	emit('update:role', { role, userId: props.data.id });
@@ -76,11 +74,9 @@ const onRoleUpdate = (role: string) => {
 			:from-view="VIEWS.USERS_SETTINGS"
 			test-id="user-role-dropdown"
 			@update:role="onRoleUpdate"
-			@system-role-upgrade-needed="upgradeModalVisible = true"
 		/>
 		<span v-else :class="$style.roleName">{{ selectedRole?.displayName }}</span>
-		<CustomRolesUpgradeModal v-model="upgradeModalVisible" />
-	</div>
+		</div>
 </template>
 
 <style lang="scss" module>

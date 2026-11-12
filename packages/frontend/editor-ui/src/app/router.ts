@@ -76,8 +76,6 @@ const SetupWorkflowFromTemplateView = async () =>
 	await import('@/features/workflows/templates/views/SetupWorkflowFromTemplateView.vue');
 const TemplatesSearchView = async () =>
 	await import('@/features/workflows/templates/views/TemplatesSearchView.vue');
-const SettingsUsageAndPlan = async () =>
-	await import('@/features/settings/usage/views/SettingsUsageAndPlan.vue');
 const SettingsSso = async () => await import('@/features/settings/sso/views/SettingsSso.vue');
 const SettingsAuthentication = async () =>
 	await import('@/features/settings/sso/views/SettingsAuthenticationView.vue');

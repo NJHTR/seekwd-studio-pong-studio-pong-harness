@@ -5,7 +5,6 @@ import { useEvaluationStore } from '../../evaluation.store';
 import { VIEWS } from '@/app/constants';
 import StepHeader from '../shared/StepHeader.vue';
 import { useRouter } from 'vue-router';
-import { useUsageStore } from '@/features/settings/usage/usage.store';
 import { usePageRedirectionHelper } from '@/app/composables/usePageRedirectionHelper';
 import { I18nT } from 'vue-i18n';
 
@@ -24,27 +23,13 @@ const workflowDocumentStore = injectWorkflowDocumentStore();
 const evaluationStore = useEvaluationStore();
 const nodeTypesStore = useNodeTypesStore();
 const evaluationState = useWorkflowEvaluationState();
-const usageStore = useUsageStore();
 const pageRedirectionHelper = usePageRedirectionHelper();
 
 const hasRuns = computed(() => {
 	return evaluationStore.testRunsByWorkflowId[workflowDocumentStore.value.workflowId]?.length > 0;
 });
 
-const evaluationsAvailable = computed(() => {
-	return (
-		usageStore.workflowsWithEvaluationsLimit === -1 ||
-		usageStore.workflowsWithEvaluationsCount < usageStore.workflowsWithEvaluationsLimit
-	);
-});
-
-const evaluationsQuotaExceeded = computed(() => {
-	return (
-		usageStore.workflowsWithEvaluationsLimit !== -1 &&
-		usageStore.workflowsWithEvaluationsCount >= usageStore.workflowsWithEvaluationsLimit &&
-		!hasRuns.value
-	);
-});
+const evaluationsQuotaExceeded = computed(() => false);
 
 const activeStepIndex = ref(0);
 
@@ -212,20 +197,6 @@ function onSeePlans() {
 						>
 							{{ locale.baseText('evaluations.setupWizard.step3.skip') }}
 						</PongButton>
-					</div>
-					<div
-						v-if="usageStore.workflowsWithEvaluationsLimit !== -1 && evaluationsAvailable"
-						:class="$style.quotaNote"
-					>
-						<PongText size="xsmall" color="text-base">
-							<I18nT keypath="evaluations.setupWizard.step3.notice" scope="global">
-								<template #link>
-									<a style="text-decoration: underline; color: inherit" @click="onSeePlans"
-										>{{ locale.baseText('evaluations.setupWizard.step3.notice.link') }}
-									</a>
-								</template>
-							</I18nT>
-						</PongText>
 					</div>
 				</div>
 			</div>

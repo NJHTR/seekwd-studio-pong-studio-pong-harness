@@ -15,10 +15,8 @@ import { getDebounceTime } from '@pong/composables/useDebounce';
 import { DEBOUNCE_TIME, MODAL_CANCEL, MODAL_CONFIRM, VIEWS } from '@/app/constants';
 import { useMessage } from '@/app/composables/useMessage';
 import ProjectDeleteDialog from '../components/ProjectDeleteDialog.vue';
-import ProjectRoleUpgradeDialog from '../components/ProjectRoleUpgradeDialog.vue';
 import ProjectMembersTable from '../components/ProjectMembersTable.vue';
 import { useRolesStore } from '@pong/stores/roles.store';
-import { useCloudPlanStore } from '@pong/stores/cloudPlan.store';
 import { useSettingsStore } from '@pong/stores/settings.store';
 import { useTelemetry } from '@pong/composables/useTelemetry';
 import { useDocumentTitle } from '@/app/composables/useDocumentTitle';
@@ -55,7 +53,6 @@ const usersStore = useUsersStore();
 const i18n = useI18n();
 const projectsStore = useProjectsStore();
 const rolesStore = useRolesStore();
-const cloudPlanStore = useCloudPlanStore();
 const settingsStore = useSettingsStore();
 const toast = useToast();
 const message = useMessage();
@@ -77,7 +74,6 @@ const showSaveError = (error: Error) => {
 };
 
 const dialogVisible = ref(false);
-const upgradeDialogVisible = ref(false);
 
 const isDirty = ref(false);
 const isNameValid = ref(false);
@@ -866,7 +862,6 @@ onMounted(async () => {
 							:can-edit-role="!rolesManaged && canManageMembers"
 							@update:options="onUpdateMembersTableOptions"
 							@update:role="onUpdateMemberRole"
-							@show-role-upgrade-dialog="upgradeDialogVisible = true"
 							@action="onMembersListAction"
 						/>
 					</div>
@@ -926,11 +921,6 @@ onMounted(async () => {
 			:current-project="projectsStore.currentProject"
 			:resource-counts="resourceCounts"
 			@confirm-delete="onConfirmDelete"
-		/>
-		<ProjectRoleUpgradeDialog
-			v-model="upgradeDialogVisible"
-			:limit="projectsStore.teamProjectsLimit"
-			:plan-name="cloudPlanStore.currentPlanData?.displayName"
 		/>
 	</div>
 </template>

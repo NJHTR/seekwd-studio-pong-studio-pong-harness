@@ -33,7 +33,6 @@ import { registerModuleRoutes } from '@/app/moduleInitializer/moduleInitializer'
 import { registerEagerModals } from '@/app/modals.manifest';
 import { registerComponentSlots } from '@/app/componentSlots.manifest';
 import { registerShellCapabilities } from '@/app/capabilities.manifest';
-import { registerUpgradeRedirectGuard } from '@/app/upgradeRedirectGuard.manifest';
 import { installRenderTracker } from '@/app/dev/render-tracker';
 
 import type { VueScanOptions } from 'z-vue-scan';
@@ -61,8 +60,6 @@ registerComponentSlots();
 // Shell actions modules call — see capabilities.manifest.ts
 registerShellCapabilities();
 
-// The upgrade-CTA guard modules rely on — see upgradeRedirectGuard.manifest.ts
-registerUpgradeRedirectGuard();
 
 app.use(TelemetryPlugin);
 app.use(PiniaVuePlugin);

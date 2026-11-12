@@ -12,7 +12,6 @@ import {
 	countGrantedInstancePermissions,
 } from '@/features/roles/instance/instanceRoleScopes';
 import RoleSelectDropdown from '@/features/roles/components/RoleSelectDropdown.vue';
-import CustomRolesUpgradeModal from '@/features/roles/components/CustomRolesUpgradeModal.vue';
 
 const {
 	disabled = false,
@@ -55,7 +54,6 @@ const blockAccessOption = computed(() =>
 		: undefined,
 );
 
-const upgradeModalVisible = ref(false);
 </script>
 
 <template>
@@ -78,10 +76,8 @@ const upgradeModalVisible = ref(false);
 			:from-view="VIEWS.SSO_SETTINGS"
 			:test-id="testId"
 			@update:role="modelValue = $event"
-			@system-role-upgrade-needed="upgradeModalVisible = true"
 		/>
-		<CustomRolesUpgradeModal v-model="upgradeModalVisible" />
-	</span>
+		</span>
 </template>
 
 <style lang="scss" module>

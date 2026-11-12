@@ -257,16 +257,6 @@ export function useSettingsItems() {
 							})
 						: undefined,
 			},
-			{
-				id: 'settings-usage-and-plan',
-				order: 20,
-				section: 'billing',
-				icon: 'chart-column-decreasing',
-				label: i18n.baseText('settings.usageAndPlan.title'),
-				position: 'top',
-				available: canUserAccessRouteByName(VIEWS.USAGE),
-				route: { to: { name: VIEWS.USAGE } },
-			},
 		];
 
 		const moduleItems = uiStore.settingsSidebarItems.filter(

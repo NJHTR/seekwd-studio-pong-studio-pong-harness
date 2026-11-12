@@ -20,7 +20,6 @@ import {
 	DELETE_SECRETS_PROVIDER_MODAL_KEY,
 	SETUP_CREDENTIALS_MODAL_KEY,
 	STOP_MANY_EXECUTIONS_MODAL_KEY,
-	TRIAL_INTRO_MODAL_KEY,
 	VERSIONS_MODAL_KEY,
 	WHATS_NEW_MODAL_KEY,
 	WORKFLOW_ACTIVATION_CONFLICTING_WEBHOOK_MODAL_KEY,
@@ -52,7 +51,6 @@ import {
 	COMMUNITY_PACKAGE_INSTALL_MODAL_KEY,
 } from '@/features/settings/communityNodes/communityNodes.constants';
 import { VARIABLE_MODAL_KEY } from '@/features/settings/environments.ee/environments.constants';
-import { COMMUNITY_PLUS_ENROLLMENT_MODAL } from '@/features/settings/usage/usage.constants';
 import {
 	DELETE_USER_MODAL_KEY,
 	INVITE_USER_MODAL_KEY,
@@ -101,12 +99,6 @@ export const SHELL_MODAL_INITIAL_STATE: Readonly<Record<string, ModalState>> = O
 		activeId: null,
 	},
 	[COMMUNITY_PACKAGE_INSTALL_MODAL_KEY]: { open: false },
-	[COMMUNITY_PLUS_ENROLLMENT_MODAL]: {
-		open: false,
-		data: {
-			customHeading: undefined,
-		},
-	},
 	[CREDENTIAL_EDIT_MODAL_KEY]: {
 		open: false,
 		mode: '',
@@ -180,7 +172,6 @@ export const SHELL_MODAL_INITIAL_STATE: Readonly<Record<string, ModalState>> = O
 	[SOURCE_CONTROL_PUSH_MODAL_KEY]: { open: false },
 	[STOP_MANY_EXECUTIONS_MODAL_KEY]: { open: false, data: {} },
 	[TAGS_MANAGER_MODAL_KEY]: { open: false },
-	[TRIAL_INTRO_MODAL_KEY]: { open: false },
 	[VARIABLE_MODAL_KEY]: { open: false },
 	[VERSIONS_MODAL_KEY]: { open: false },
 	[WHATS_NEW_MODAL_KEY]: {

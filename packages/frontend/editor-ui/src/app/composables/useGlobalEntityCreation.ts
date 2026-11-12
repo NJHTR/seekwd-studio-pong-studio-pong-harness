@@ -21,10 +21,8 @@ import { useMessage } from '@/app/composables/useMessage';
 import { useTelemetry } from '@pong/composables/useTelemetry';
 import { VARIABLE_MODAL_KEY } from '@/features/settings/environments.ee/environments.constants';
 import { PROJECT_DATA_TABLES } from '@/features/core/dataTable/constants';
-import { COMMUNITY_PLUS_ENROLLMENT_MODAL } from '@/features/settings/usage/usage.constants';
 import { getResourcePermissions } from '@pong/permissions';
 import { MODAL_CONFIRM } from '@/app/constants';
-import { usePageRedirectionHelper } from '@/app/composables/usePageRedirectionHelper';
 import type { Scope } from '@pong/permissions';
 import type { RouteLocationRaw } from 'vue-router';
 import { updatedIconSet, type IconName } from '@pong/design-system';
@@ -568,16 +566,7 @@ export const useGlobalEntityCreation = () => {
 
 	const handleSelect = (id: string) => {
 		if (id === FOLDER_MENU_ID) {
-			if (!settingsStore.isFoldersFeatureEnabled) {
-				uiStore.openModalWithData({
-					name: COMMUNITY_PLUS_ENROLLMENT_MODAL,
-					data: {
-						customHeading: i18n.baseText('folders.registeredCommunity.cta.heading'),
-					},
-				});
-			} else {
-				void createFolder();
-			}
+			void createFolder();
 			return;
 		}
 
@@ -625,7 +614,6 @@ export const useGlobalEntityCreation = () => {
 			return;
 		}
 
-		void usePageRedirectionHelper().goToUpgrade('rbac', 'upgrade-rbac');
 	};
 
 	const projectsLimitReachedMessage = computed(() => {

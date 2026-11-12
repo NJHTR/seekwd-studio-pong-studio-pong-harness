@@ -6,7 +6,6 @@ import { useRolesStore } from '@pong/stores/roles.store';
 import { hasPermission } from '@/app/utils/rbac/permissions';
 import { VIEWS } from '@/app/constants';
 import RoleSelectDropdown from '@/features/roles/components/RoleSelectDropdown.vue';
-import CustomRolesUpgradeModal from '@/features/roles/components/CustomRolesUpgradeModal.vue';
 
 const { disabled = false, testId = 'project-role-assignment-select' } = defineProps<{
 	disabled?: boolean;
@@ -30,7 +29,6 @@ const customRoles = computed(() =>
 	rolesStore.processedProjectRoles.filter((role) => !role.systemRole),
 );
 
-const upgradeModalVisible = ref(false);
 </script>
 
 <template>
@@ -47,10 +45,8 @@ const upgradeModalVisible = ref(false);
 			:disabled="disabled"
 			:test-id="testId"
 			@update:role="modelValue = $event"
-			@system-role-upgrade-needed="upgradeModalVisible = true"
 		/>
-		<CustomRolesUpgradeModal v-model="upgradeModalVisible" />
-	</span>
+		</span>
 </template>
 
 <style lang="scss" module>

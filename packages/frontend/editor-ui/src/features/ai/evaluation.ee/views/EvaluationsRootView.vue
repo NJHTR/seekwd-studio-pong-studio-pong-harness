@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useUsageStore } from '@/features/settings/usage/usage.store';
 import { useAsyncState } from '@vueuse/core';
 import { EVALUATIONS_DOCS_URL, VIEWS } from '@/app/constants';
 import { useTelemetry } from '@pong/composables/useTelemetry';
@@ -11,7 +10,6 @@ import { useWorkflowsStore } from '@/app/stores/workflows.store';
 
 import { computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import EvaluationsPaywall from '../components/Paywall/EvaluationsPaywall.vue';
 import SetupWizard from '../components/SetupWizard/SetupWizard.vue';
 import EvaluationsEmptyState from '../components/EvaluationsEmptyState/EvaluationsEmptyState.vue';
 
@@ -23,7 +21,6 @@ const props = defineProps<{
 	workflowId: string;
 }>();
 
-const usageStore = useUsageStore();
 const evaluationStore = useEvaluationStore();
 const evaluationState = useWorkflowEvaluationState();
 const workflowsStore = useWorkflowsStore();
@@ -72,14 +69,6 @@ async function runTest() {
 	}
 }
 
-const evaluationsQuotaExceeded = computed(() => {
-	return (
-		usageStore.workflowsWithEvaluationsLimit !== -1 &&
-		usageStore.workflowsWithEvaluationsCount >= usageStore.workflowsWithEvaluationsLimit &&
-		!hasRuns.value
-	);
-});
-
 function openWizardOnCanvas() {
 	void router.push({
 		name: VIEWS.WORKFLOW,
@@ -100,8 +89,7 @@ async function fetchTestRuns() {
 
 const { isReady } = useAsyncState(async () => {
 	try {
-		await usageStore.getLicenseInfo();
-	} catch (error) {
+		} catch (error) {
 		toast.showError(error, locale.baseText('evaluation.listRuns.error.cantFetchTestRuns'));
 	}
 
@@ -126,7 +114,6 @@ watch(
 					trigger_set_up: evaluationState.evaluationTriggerExists.value,
 					output_set_up: evaluationState.evaluationSetOutputsNodeExist.value,
 					metrics_set_up: evaluationState.evaluationSetMetricsNodeExist.value,
-					quota_reached: evaluationsQuotaExceeded.value,
 				});
 			} else {
 				telemetry.track('User viewed tests tab', {
@@ -151,9 +138,7 @@ watch(
 			opened — same destination the floating CTA above already targets.
 		-->
 		<template v-if="isReady && showWizard && isEvaluationsWizardSidepanelEnabled">
-			<EvaluationsPaywall v-if="!isLicensed" />
 			<EvaluationsEmptyState
-				v-else
 				:disabled="isProtectedEnvironment"
 				@get-started="openWizardOnCanvas"
 			/>
@@ -195,8 +180,7 @@ watch(
 						referrerpolicy="strict-origin-when-cross-origin"
 						allowfullscreen
 					></iframe>
-					<SetupWizard v-if="isLicensed" @run-test="runTest" />
-					<EvaluationsPaywall v-else />
+					<SetupWizard @run-test="runTest" />
 				</div>
 			</div>
 		</template>

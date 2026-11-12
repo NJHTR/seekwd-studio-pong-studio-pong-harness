@@ -8,7 +8,6 @@ import type {
 	WorkflowHistoryRequestParams,
 } from '@pong/rest-api-client/api/workflowHistory';
 import WorkflowHistoryListItem from './WorkflowHistoryListItem.vue';
-import WorkflowHistoryUpgradeFooter from './WorkflowHistoryUpgradeFooter.vue';
 import type { IUser } from 'pong-workflow';
 import { useIntersectionObserver } from '@/app/composables/useIntersectionObserver';
 import { PongLoading, PongIcon, PongText } from '@pong/design-system';
@@ -261,12 +260,6 @@ const pruneTimeDisplay = computed(() => {
 			<PongLoading :rows="3" class="mb-xs" />
 			<PongLoading :rows="3" class="mb-xs" />
 			<PongLoading :rows="3" class="mb-xs" />
-		</li>
-		<li v-if="props.shouldUpgrade">
-			<WorkflowHistoryUpgradeFooter
-				:prune-time-display="pruneTimeDisplay"
-				@upgrade="emit('upgrade')"
-			/>
 		</li>
 	</ul>
 </template>

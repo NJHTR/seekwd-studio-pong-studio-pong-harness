@@ -19,7 +19,6 @@ import FocusSidebarTabs from '@/features/setupPanel/components/FocusSidebarTabs.
 import SetupPanel from '@/features/setupPanel/components/SetupPanel.vue';
 import FocusPanel from '@/app/components/FocusPanel.vue';
 import TestsPanel from '@/features/ai/evaluation.ee/components/Tests/TestsPanel.vue';
-import EvaluationsPaywall from '@/features/ai/evaluation.ee/components/Paywall/EvaluationsPaywall.vue';
 import { useEvaluationsWizardSidepanelExperiment } from '@/experiments/evaluationsWizardSidepanel/useEvaluationsWizardSidepanelExperiment';
 import { useEvaluationsLicense } from '@/features/ai/evaluation.ee/composables/useEvaluationsLicense';
 
@@ -69,14 +68,6 @@ const showEvaluationsPanel = computed(
 		isResolved.value &&
 		isLicensed.value,
 );
-const showEvaluationsPaywall = computed(
-	() =>
-		isEvaluationsWizardSidepanelEnabled.value &&
-		selectedTab.value === 'evaluations' &&
-		isResolved.value &&
-		!isLicensed.value,
-);
-
 // Tab bar visibility used to track only the setup panel; now it also needs to
 // stay shown when the evaluations tab is available, otherwise the user has no
 // way to switch back.
@@ -195,12 +186,6 @@ onBeforeUnmount(() => {
 				</div>
 				<div v-else-if="showEvaluationsPanel" :class="$style['setup-panel-wrapper']">
 					<TestsPanel />
-				</div>
-				<div
-					v-else-if="showEvaluationsPaywall"
-					:class="[$style['setup-panel-wrapper'], $style['evaluations-paywall-wrapper']]"
-				>
-					<EvaluationsPaywall />
 				</div>
 				<FocusPanel
 					v-else

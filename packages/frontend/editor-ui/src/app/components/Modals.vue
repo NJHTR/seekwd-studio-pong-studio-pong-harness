@@ -35,7 +35,6 @@ import {
 	CREDENTIAL_RESOLVER_EDIT_MODAL_KEY,
 	AI_BUILDER_DIFF_MODAL_KEY,
 	AI_GATEWAY_TOP_UP_MODAL_KEY,
-	TRIAL_INTRO_MODAL_KEY,
 } from '@/app/constants';
 import {
 	ANNOTATION_TAGS_MANAGER_MODAL_KEY,
@@ -52,7 +51,6 @@ import {
 	INVITE_USER_MODAL_KEY,
 	PERSONALIZATION_MODAL_KEY,
 } from '@/features/settings/users/users.constants';
-import { COMMUNITY_PLUS_ENROLLMENT_MODAL } from '@/features/settings/usage/usage.constants';
 import {
 	DELETE_FOLDER_MODAL_KEY,
 	MOVE_FOLDER_MODAL_KEY,
@@ -76,7 +74,6 @@ import NewAssistantSessionModal from '@/features/ai/assistant/components/Chat/Ne
 import ChatEmbedModal from '@/app/components/ChatEmbedModal.vue';
 import CommunityPackageInstallModal from '@/features/settings/communityNodes/components/CommunityPackageInstallModal.vue';
 import CommunityPackageManageConfirmModal from '@/features/settings/communityNodes/components/CommunityPackageManageConfirmModal.vue';
-import CommunityPlusEnrollmentModal from '@/features/settings/usage/components/CommunityPlusEnrollmentModal.vue';
 import CredentialEdit from '@/features/credentials/components/CredentialEdit/CredentialEdit.vue';
 import CredentialsSelectModal from '@/features/credentials/components/CredentialsSelectModal.vue';
 import DebugPaywallModal from '@/features/execution/executions/components/DebugPaywallModal.vue';
@@ -128,9 +125,6 @@ import AiGatewayTopUpModal from '@/features/ai/gateway/components/AiGatewayTopUp
 import type { AiGatewayTopUpVariant } from '@/app/composables/useAiGatewayTopUp';
 import { defineAsyncComponent } from 'vue';
 
-const TrialIntroModal = defineAsyncComponent(
-	async () => await import('@/experiments/trialIntroModal/components/TrialIntroModal.vue'),
-);
 </script>
 
 <template>
@@ -354,11 +348,6 @@ const TrialIntroModal = defineAsyncComponent(
 			</template>
 		</ModalRoot>
 
-		<ModalRoot :name="COMMUNITY_PLUS_ENROLLMENT_MODAL">
-			<template #default="{ modalName, data }">
-				<CommunityPlusEnrollmentModal :modal-name="modalName" :data="data" />
-			</template>
-		</ModalRoot>
 
 		<ModalRoot :name="DELETE_FOLDER_MODAL_KEY">
 			<template #default="{ modalName, activeId, data }">
@@ -471,11 +460,6 @@ const TrialIntroModal = defineAsyncComponent(
 			</template>
 		</ModalRoot>
 
-		<ModalRoot :name="TRIAL_INTRO_MODAL_KEY">
-			<template #default="{ modalName }">
-				<TrialIntroModal :modal-name="modalName" />
-			</template>
-		</ModalRoot>
 
 		<!-- Dynamic modals from modules -->
 		<DynamicModalLoader />

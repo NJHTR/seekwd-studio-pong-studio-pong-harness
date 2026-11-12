@@ -82,7 +82,6 @@ import {
 	REPORTED_SOURCE_OTHER_KEY,
 	REPORTED_SOURCE_LLM,
 } from '../users.constants';
-import { COMMUNITY_PLUS_ENROLLMENT_MODAL } from '@/features/settings/usage/usage.constants';
 import { useToast } from '@pong/composables/useToast';
 import type { IFormInputs } from '@/Interface';
 import type { IPersonalizationLatestVersion } from '@pong/rest-api-client/api/users';
@@ -584,18 +583,7 @@ const closeDialog = () => {
 	if (uiStore.modalsById[PERSONALIZATION_MODAL_KEY]?.open !== true) return;
 	uiStore.closeModal(PERSONALIZATION_MODAL_KEY);
 
-	// Community Plus enrollment is only offered on self-hosted instances.
-	if (settingsStore.deploymentType === 'default' && userPermissions.value.community.register) {
-		uiStore.openModalWithData({
-			name: COMMUNITY_PLUS_ENROLLMENT_MODAL,
-			data: {
-				closeCallback,
-				customHeading: undefined,
-			},
-		});
-	} else {
-		closeCallback();
-	}
+	closeCallback();
 };
 
 function onDialogOpenUpdate(open: boolean) {

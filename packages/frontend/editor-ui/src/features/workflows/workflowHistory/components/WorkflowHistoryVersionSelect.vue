@@ -5,7 +5,6 @@ import { PongSelect } from '@pong/design-system';
 import { useI18n } from '@pong/i18n';
 import WorkflowVersionStatusIndicator from './WorkflowVersionStatusIndicator.vue';
 import WorkflowHistoryPublishedTooltip from './WorkflowHistoryPublishedTooltip.vue';
-import WorkflowHistoryUpgradeFooter from './WorkflowHistoryUpgradeFooter.vue';
 import type { WorkflowHistoryVersionOption } from '../useWorkflowHistoryVersionOptions';
 import { formatTimestamp } from '../utils';
 import { useWorkflowHistoryStore } from '../workflowHistory.store';
@@ -128,7 +127,6 @@ const pruneTimeDisplay = computed(() => {
 	return i18n.baseText(key, { interpolate: { days: String(days) } });
 });
 
-const shouldShowUpgradeFooter = computed(() => Boolean(unref(workflowHistoryStore.shouldUpgrade)));
 </script>
 
 <template>
@@ -184,13 +182,6 @@ const shouldShowUpgradeFooter = computed(() => Boolean(unref(workflowHistoryStor
 						</span>
 					</ElOption>
 				</ElOptionGroup>
-				<template v-if="shouldShowUpgradeFooter" #footer>
-					<WorkflowHistoryUpgradeFooter
-						:prune-time-display="pruneTimeDisplay"
-						:with-top-border="true"
-						@upgrade="emit('upgrade')"
-					/>
-				</template>
 			</PongSelect>
 		</component>
 	</div>
