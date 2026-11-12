@@ -291,6 +291,8 @@ export class AppServerSupervisor {
 	private activeTurnId: string | null = null;
 	private readonly completedTurnIds = new Set<string>();
 	private readonly completedTurnNotifications = new Map<string, InboundNotification>();
+	/** Answers of a `requestUserInput` approval, sent when the host accepts it. */
+	private readonly userInputAnswers = new Map<string, Record<string, { answers: string[] }>>();
 	private turnWaiters = new Map<string, TurnWaiter>();
 	private readonly notificationListeners = new Set<(notification: InboundNotification) => void>();
 
@@ -877,6 +879,21 @@ export class AppServerSupervisor {
 		return this.approvals.decide(approvalId, decision);
 	}
 
+	/**
+	 * Answer a pending `requestUserInput` approval with the user's answers, then
+	 * accept it. The responder sends the stored answers on the same connection,
+	 * so the turn continues with the model's questions answered.
+	 */
+	answerUserInput(approvalId: string, answers: Record<string, { answers: string[] }>): boolean {
+		const pending = this.approvals
+			.pendingApprovals()
+			.some((approval) => approval.approvalId === approvalId);
+		if (!pending) return false;
+		// The responder reads the answers synchronously from `decide`, so store first.
+		this.userInputAnswers.set(approvalId, answers);
+		return this.approvals.decide(approvalId, 'accept');
+	}
+
 	private handleNotification(notification: InboundNotification): void {
 		if (notification.method === 'turn/completed' || notification.method === 'turn/failed') {
 			const turn = notification.params;
@@ -975,7 +992,7 @@ export class AppServerSupervisor {
 	private registerApproval(request: InboundRequest, kind: ApprovalKind): void {
 		const params = request.params;
 		const approvalId = `${String(request.id)}:${readItemId(params)}`;
-		const respond = this.buildApprovalResponder(request, kind);
+		const respond = this.buildApprovalResponder(request, kind, approvalId);
 		const threadId =
 			readStringField(params, 'threadId') ?? readStringField(params, 'conversationId') ?? '';
 		const turnId = readStringField(params, 'turnId') ?? '';
@@ -1021,6 +1038,7 @@ export class AppServerSupervisor {
 	private buildApprovalResponder(
 		request: InboundRequest,
 		kind: ApprovalKind,
+		approvalId: string,
 	): (decision: ApprovalDecision) => void {
 		const transport = this.requireTransport();
 		const params = request.params;
@@ -1034,7 +1052,9 @@ export class AppServerSupervisor {
 				return;
 			}
 			if (kind === 'userInput') {
-				transport.respond(request.id, { answers: {} });
+				const answers = this.userInputAnswers.get(approvalId);
+				this.userInputAnswers.delete(approvalId);
+				transport.respond(request.id, { answers: answers ?? {} });
 				return;
 			}
 			if (kind === 'legacy') {
