@@ -14,10 +14,12 @@ import type { AgentExecutionThread } from '../../../entities/agent-execution-thr
 import type { AgentRepository } from '../../../repositories/agent.repository';
 import type { AgentExecutionThreadRepository } from '../../../repositories/agent-execution-thread.repository';
 import type { AgentThreadGrantRepository } from '../../../repositories/agent-thread-grant.repository';
+import type { AgentChatAttachmentService } from '../../../agent-chat-attachment.service';
 import { SystemAgentRegistrationService } from '../../system-agent-registration.service';
 import { SystemAgentRegistry } from '../../system-agent-registry';
 import type { SystemAgentProvider, SystemAgentTurn } from '../../system-agent.types';
 import { EasycodeAgentProvider, registerEasycodeSystemAgent } from '../easycode-agent.provider';
+import { EasycodeApprovalRegistry } from '../easycode-approval-registry';
 import { EasycodeRuntimeAgent } from '../easycode-runtime-agent';
 import type { EasycodeSupervisorFactoryService } from '../easycode-supervisor-factory.service';
 import type {
@@ -64,6 +66,10 @@ class FakeSupervisor implements EasycodeSupervisorPort {
 	}
 
 	decideApproval(_approvalId: string, _decision: string): boolean {
+		return false;
+	}
+
+	answerUserInput(_approvalId: string, _answers: Record<string, { answers: string[] }>): boolean {
 		return false;
 	}
 
@@ -116,12 +122,22 @@ function setup() {
 	const supervisor = new FakeSupervisor();
 	const supervisorFactory = mock<EasycodeSupervisorFactoryService>();
 	supervisorFactory.create.mockReturnValue(supervisor);
-	const provider = new EasycodeAgentProvider(threadRepository, supervisorFactory, grantsRepository);
+	const approvalRegistry = new EasycodeApprovalRegistry();
+	const attachments = mock<AgentChatAttachmentService>();
+	const provider = new EasycodeAgentProvider(
+		threadRepository,
+		supervisorFactory,
+		grantsRepository,
+		approvalRegistry,
+		attachments,
+	);
 	return {
 		registry,
 		registration,
 		threadRepository,
 		grantsRepository,
+		approvalRegistry,
+		attachments,
 		supervisor,
 		supervisorFactory,
 		provider,

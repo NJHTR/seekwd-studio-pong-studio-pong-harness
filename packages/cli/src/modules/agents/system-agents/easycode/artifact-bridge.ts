@@ -12,6 +12,8 @@ export interface EasycodeArtifactFile {
 
 export interface EasycodeArtifactManifest {
 	itemId: string;
+	threadId: string;
+	turnId: string | null;
 	sha256: string;
 	bytes: number;
 	files: EasycodeArtifactFile[];
@@ -47,6 +49,8 @@ export interface EasycodeArtifactBridgeOptions {
 export class EasycodeArtifactBridge {
 	private readonly chunks = new Map<string, string[]>();
 
+	private readonly turnIds = new Map<string, string | null>();
+
 	constructor(private readonly options: EasycodeArtifactBridgeOptions) {}
 
 	observe(notification: EasycodeNotification): void {
@@ -57,6 +61,7 @@ export class EasycodeArtifactBridge {
 			const existing = this.chunks.get(itemId) ?? [];
 			existing.push(delta);
 			this.chunks.set(itemId, existing);
+			this.turnIds.set(itemId, readString(notification.params, 'turnId') ?? null);
 			return;
 		}
 		if (notification.method === 'item/completed') {
@@ -77,10 +82,13 @@ export class EasycodeArtifactBridge {
 		const patch = this.patchOf(itemId);
 		if (patch === '') return;
 		this.chunks.delete(itemId);
+		this.turnIds.delete(itemId);
 		const bytes = Buffer.from(patch, 'utf8');
 		const sha256 = createHash('sha256').update(bytes).digest('hex');
 		const manifest: EasycodeArtifactManifest = {
 			itemId,
+			threadId: this.options.threadId,
+			turnId: this.turnIds.get(itemId) ?? null,
 			sha256,
 			bytes: bytes.byteLength,
 			files: parsePatchFiles(patch),

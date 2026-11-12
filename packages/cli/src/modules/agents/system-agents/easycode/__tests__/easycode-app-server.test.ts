@@ -10,7 +10,9 @@ import { mock } from 'vitest-mock-extended';
 import type { AgentExecutionThread } from '../../../entities/agent-execution-thread.entity';
 import type { AgentExecutionThreadRepository } from '../../../repositories/agent-execution-thread.repository';
 import type { AgentThreadGrantRepository } from '../../../repositories/agent-thread-grant.repository';
+import type { AgentChatAttachmentService } from '../../../agent-chat-attachment.service';
 import { EasycodeAgentProvider } from '../easycode-agent.provider';
+import { EasycodeApprovalRegistry } from '../easycode-approval-registry';
 import { EasycodeSupervisorFactoryService } from '../easycode-supervisor-factory.service';
 import type { SystemAgentTurn } from '../../system-agent.types';
 import type { EasycodeSupervisorCreateOptions } from '../easycode-supervisor.port';
@@ -88,6 +90,8 @@ describe('easyCode runtime against a fake app-server', () => {
 					factory.create({ ...options, exePath: process.execPath, appServerArgs: FIXTURE_ARGS }),
 			} as unknown as EasycodeSupervisorFactoryService,
 			grantsRepository,
+			new EasycodeApprovalRegistry(),
+			mock<AgentChatAttachmentService>(),
 		);
 
 		const handle = await provider.prepareTurn(startTurn());
@@ -123,6 +127,8 @@ describe('easyCode runtime against a fake app-server', () => {
 					factory.create({ ...options, exePath: process.execPath, appServerArgs: FIXTURE_ARGS }),
 			} as unknown as EasycodeSupervisorFactoryService,
 			grantsRepository,
+			new EasycodeApprovalRegistry(),
+			mock<AgentChatAttachmentService>(),
 		);
 		const handle = await provider.prepareTurn(startTurn());
 		// Start the turn, then settle it as cancelled while the fake app-server

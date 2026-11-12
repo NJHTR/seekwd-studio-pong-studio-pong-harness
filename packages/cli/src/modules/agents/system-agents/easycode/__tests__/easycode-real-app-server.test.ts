@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -46,12 +47,15 @@ describe.skipIf(!ENABLED)('easyCode real app-server', () => {
 	let workspace: string;
 
 	beforeEach(async () => {
+		// Read-only makes every write an approval, so a real model must ask.
+		process.env.PONG_EASYCODE_SANDBOX = 'read-only';
 		workspace = await mkdtemp(join(tmpdir(), 'pong-easycode-e2e-'));
 		await writeFile(join(workspace, 'README.md'), 'the pong e2e workspace\n', 'utf8');
 		execFileSync('git', ['init'], { cwd: workspace, windowsHide: true });
 	});
 
 	afterEach(async () => {
+		delete process.env.PONG_EASYCODE_SANDBOX;
 		await rm(workspace, { recursive: true, force: true });
 	});
 
@@ -85,6 +89,14 @@ describe.skipIf(!ENABLED)('easyCode real app-server', () => {
 		const artifacts = new EasycodeArtifactBridge({
 			threadId: 'real-e2e',
 			emit: emitter.emit as never,
+			// Test sink: the bytes exist on disk, so the manifest is checkable.
+			sink: {
+				store: async ({ bytes }) => {
+					const sha = createHash('sha256').update(bytes).digest('hex');
+					await writeFile(join(workspace, `real-e2e-${sha}.patch`), bytes);
+					return { fileId: `local:${sha}` };
+				},
+			},
 		});
 		const factory = new EasycodeSupervisorFactoryService(noopLogger);
 		supervisor = factory.create({
@@ -122,9 +134,20 @@ describe.skipIf(!ENABLED)('easyCode real app-server', () => {
 		expect(finish).toMatchObject({ type: 'finish' });
 		expect(approvals.length).toBeGreaterThan(0);
 		expect(decisions.length).toBeGreaterThan(0);
+		const requested = emitter.events.find((event) => event.name === 'easycode-approval-requested')
+			?.payload as { approvalId?: string; requestKind?: string; expiresAtMs?: number } | undefined;
+		expect(requested?.approvalId).toEqual(approvals[0]?.approvalId);
+		expect(typeof requested?.expiresAtMs).toBe('number');
 		const artifact = emitter.events.find((event) => event.name === 'easycode-artifact')?.payload as
 			| EasycodeArtifactManifest
 			| undefined;
 		expect(artifact?.sha256).toMatch(/^[a-f0-9]{64}$/);
+		expect(artifact?.threadId).toBe('real-e2e');
+		expect(artifact?.fileId).toMatch(/^local:[a-f0-9]{64}$/);
+		// Record the observable sequence for the report.
+		const sequence = emitter.events.map((event) => event.name);
+		expect(sequence).toContain('easycode-approval-requested');
+		expect(sequence).toContain('easycode-approval-decided');
+		expect(sequence).toContain('easycode-artifact');
 	}, 240_000);
 });

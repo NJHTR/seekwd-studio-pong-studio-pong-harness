@@ -69,6 +69,10 @@ class FakeSupervisor implements EasycodeSupervisorPort {
 		return false;
 	}
 
+	answerUserInput(_approvalId: string, _answers: Record<string, { answers: string[] }>): boolean {
+		return false;
+	}
+
 	pendingApprovals(): [] {
 		return [];
 	}

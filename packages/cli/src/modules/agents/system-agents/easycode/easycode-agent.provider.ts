@@ -3,6 +3,7 @@ import type { User } from '@pong/db';
 import { getErrorMessage } from '@pong/utils/errors/get-error-message';
 import { userHasScopes } from '@/permissions.ee/check-access';
 
+import { AgentChatAttachmentService } from '../../agent-chat-attachment.service';
 import { AgentExecutionThreadRepository } from '../../repositories/agent-execution-thread.repository';
 import { AgentThreadGrantRepository } from '../../repositories/agent-thread-grant.repository';
 import type { FormattedTurnError } from '../../types/agent-turn-outcome';
@@ -14,7 +15,9 @@ import type {
 } from '../system-agent.types';
 import { SystemAgentRegistrationService } from '../system-agent-registration.service';
 import { EasycodeApprovalBridge } from './approval-bridge';
+import { EasycodeApprovalRegistry } from './easycode-approval-registry';
 import { EasycodeArtifactBridge } from './artifact-bridge';
+import { EasycodeAttachmentArtifactSink } from './artifact-sink';
 import {
 	EASYCODE_AGENT_ID,
 	EASYCODE_AGENT_NAME,
@@ -68,6 +71,8 @@ export class EasycodeAgentProvider implements SystemAgentProvider {
 		private readonly threadRepository: AgentExecutionThreadRepository,
 		private readonly supervisorFactory: EasycodeSupervisorFactoryService,
 		private readonly grantsRepository: AgentThreadGrantRepository,
+		private readonly approvalRegistry: EasycodeApprovalRegistry,
+		private readonly attachments: AgentChatAttachmentService,
 	) {}
 
 	async authorize(user: User, projectId: string): Promise<boolean> {
@@ -95,6 +100,10 @@ export class EasycodeAgentProvider implements SystemAgentProvider {
 		// indirection breaks it without a cast or a null assertion.
 		let decideApproval: (approvalId: string, decision: EasycodeApprovalDecision) => boolean = () =>
 			false;
+		let answerUserInput: (
+			approvalId: string,
+			answers: Record<string, { answers: string[] }>,
+		) => boolean = () => false;
 		const approvalBridge = new EasycodeApprovalBridge({
 			threadId,
 			emit,
@@ -105,6 +114,7 @@ export class EasycodeAgentProvider implements SystemAgentProvider {
 				},
 			},
 			decide: (approvalId, decision) => decideApproval(approvalId, decision),
+			answerUserInput: (approvalId, answers) => answerUserInput(approvalId, answers),
 		});
 		await approvalBridge.loadGrants();
 
@@ -124,8 +134,18 @@ export class EasycodeAgentProvider implements SystemAgentProvider {
 			},
 		});
 		decideApproval = (approvalId, decision) => supervisor.decideApproval(approvalId, decision);
+		answerUserInput = (approvalId, answers) => supervisor.answerUserInput(approvalId, answers);
 
-		const artifacts = new EasycodeArtifactBridge({ threadId, emit });
+		const artifacts = new EasycodeArtifactBridge({
+			threadId,
+			emit,
+			sink: new EasycodeAttachmentArtifactSink(this.attachments, {
+				agentId: EASYCODE_AGENT_ID,
+				projectId: turn.thread.projectId,
+				threadId,
+				...(turn.resourceId !== undefined ? { resourceId: turn.resourceId } : {}),
+			}),
+		});
 		const agent = new EasycodeRuntimeAgent({
 			threadId,
 			cwd,
@@ -160,6 +180,10 @@ export class EasycodeAgentProvider implements SystemAgentProvider {
 			// Best effort.
 		}
 
+		// The chat controller answers an approval by thread id, so the bridge of
+		// this turn must be reachable until the turn settles.
+		this.approvalRegistry.register(threadId, approvalBridge);
+
 		const handle: SystemAgentTurnHandle = {
 			agent,
 			toolRegistry: new Map(),
@@ -170,6 +194,7 @@ export class EasycodeAgentProvider implements SystemAgentProvider {
 				code: 'easycode_failed',
 			}),
 			onSettled: async () => {
+				this.approvalRegistry.unregister(threadId, approvalBridge);
 				// The Agents runtime keeps no cache of system-agent runtimes, so the
 				// provider owns the child process of the turn.
 				await agent.close();

@@ -2,6 +2,7 @@ import { resolveDefaultExePath, AppServerSupervisor } from '@pong/easycode-runti
 import type {
 	ApprovalHostRequest,
 	DynamicToolCallParams,
+	SandboxPolicy,
 	SupervisorLogger,
 } from '@pong/easycode-runtime';
 import { Logger } from '@pong/backend-common';
@@ -43,6 +44,13 @@ export function resolveEasycodeBinaryPath(env: NodeJS.ProcessEnv = process.env):
 
 const DEFAULT_APP_SERVER_ARGS = ['app-server', '--listen', 'stdio://'];
 
+/** Test seam: PONG_EASYCODE_SANDBOX=read-only makes every write need an approval. */
+function resolveSandboxMode(): 'read-only' | 'workspace-write' | 'danger-full-access' {
+	const value = process.env.PONG_EASYCODE_SANDBOX;
+	if (value === 'read-only' || value === 'danger-full-access') return value;
+	return 'workspace-write';
+}
+
 /**
  * Adapts `AppServerSupervisor` to the narrow port. The supervisor owns the
  * child process, the approval broker and the dynamic tool dispatch; this
@@ -68,7 +76,7 @@ class SupervisorPortAdapter implements EasycodeSupervisorPort {
 			model: params.model ?? null,
 			approvalPolicy: 'on-request',
 			approvalsReviewer: 'user',
-			sandbox: 'workspace-write',
+			sandbox: resolveSandboxMode(),
 			developerInstructions: params.developerInstructions ?? null,
 			dynamicTools: params.dynamicTools ?? null,
 		});
@@ -80,7 +88,7 @@ class SupervisorPortAdapter implements EasycodeSupervisorPort {
 			threadId: params.threadId,
 			cwd: this.cwd,
 			approvalPolicy: 'on-request',
-			sandbox: 'workspace-write',
+			sandbox: resolveSandboxMode(),
 		});
 		return { threadId: response.thread.id };
 	}
@@ -94,14 +102,7 @@ class SupervisorPortAdapter implements EasycodeSupervisorPort {
 			model: params.model,
 			cwd: params.cwd,
 			approvalPolicy: 'on-request',
-			sandboxPolicy: {
-				type: 'workspaceWrite',
-				writableRoots: [params.cwd],
-				// ADR-01: network access stays off until the approval bridge covers it.
-				networkAccess: false,
-				excludeTmpdirEnvVar: false,
-				excludeSlashTmp: false,
-			},
+			sandboxPolicy: resolveSandboxPolicy(params.cwd),
 		});
 		return { turnId: response.turn.id };
 	}
@@ -131,6 +132,10 @@ class SupervisorPortAdapter implements EasycodeSupervisorPort {
 
 	decideApproval(approvalId: string, decision: EasycodeApprovalDecision): boolean {
 		return this.supervisor.decideApproval(approvalId, decision);
+	}
+
+	answerUserInput(approvalId: string, answers: Record<string, { answers: string[] }>): boolean {
+		return this.supervisor.answerUserInput(approvalId, answers);
 	}
 
 	pendingApprovals(): EasycodePendingApproval[] {
@@ -214,6 +219,20 @@ export class EasycodeSupervisorFactoryService implements EasycodeSupervisorFacto
 		});
 		return new SupervisorPortAdapter(supervisor, options.cwd);
 	}
+}
+
+function resolveSandboxPolicy(cwd: string): SandboxPolicy {
+	const mode = resolveSandboxMode();
+	if (mode === 'danger-full-access') return { type: 'dangerFullAccess' };
+	if (mode === 'read-only') return { type: 'readOnly', networkAccess: false };
+	return {
+		type: 'workspaceWrite',
+		writableRoots: [cwd],
+		// ADR-01: network access stays off until the approval bridge covers it.
+		networkAccess: false,
+		excludeTmpdirEnvVar: false,
+		excludeSlashTmp: false,
+	};
 }
 
 function toPortKind(kind: string): EasycodeApprovalKind {

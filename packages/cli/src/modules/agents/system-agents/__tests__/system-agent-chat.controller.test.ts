@@ -15,6 +15,7 @@ import type { AgentChatAttachment } from '../../entities/agent-chat-attachment.e
 import type { AgentExecutionThread } from '../../entities/agent-execution-thread.entity';
 import type { PONGCheckpointStorage } from '../../integrations/pong-checkpoint-storage';
 import type { PongMemory } from '../../integrations/pong-memory';
+import { EasycodeApprovalRegistry } from '../easycode/easycode-approval-registry';
 import { SystemAgentChatController } from '../system-agent-chat.controller';
 import type { SystemAgentExecutionService } from '../system-agent-execution.service';
 
@@ -49,6 +50,7 @@ function setup() {
 		checkpointStorage,
 		attachments,
 		memory,
+		new EasycodeApprovalRegistry(),
 	);
 	return {
 		controller,

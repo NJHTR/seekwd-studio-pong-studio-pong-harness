@@ -1,14 +1,25 @@
+import type { JSONValue } from '@pong/agents';
 import type { ApprovalHostRequest } from '@pong/easycode-runtime';
 
 import type { SystemAgentHostEventEmitter } from '../system-agent-host-events';
-import { toJsonValue } from './easycode-json';
 import { EASYCODE_APPROVAL_TIMEOUT_MS } from './easycode.constants';
+import { toJsonValue } from './easycode-json';
 import type {
 	EasycodeApprovalDecision,
 	EasycodeApprovalKind,
 	EasycodeApprovalRequest,
 	EasycodePendingApproval,
 } from './easycode-supervisor.port';
+
+/** Answers of an input request, keyed by question id (M1-C contract). */
+export type EasycodeApprovalAnswers = Record<string, string[]>;
+
+/** The decision result of the endpoint: 200, 404 or 409 of the contract. */
+export type EasycodeResolveOutcome =
+	| { status: 'ok' }
+	| { status: 'unknown' }
+	| { status: 'decided' }
+	| { status: 'expired' };
 
 /** The session grants of the thread (`agent_thread_grants`), seen as a small port. */
 export interface EasycodeApprovalGrantPort {
@@ -34,8 +45,10 @@ export interface EasycodeApprovalBridgeOptions {
 	/** Host events carry the approval card to the chat stream and to history. */
 	emit: SystemAgentHostEventEmitter;
 	grants: EasycodeApprovalGrantPort;
-	/** Answers the pending approval on the app-server connection. */
-	decide: (approvalId: string, decision: EasycodeApprovalDecision) => boolean;
+	/** Answers a command / file / permissions approval on the app-server connection. */
+	decide?: (approvalId: string, decision: EasycodeApprovalDecision) => boolean;
+	/** Sends the collected answers of an input request on the app-server connection. */
+	answerUserInput?: (approvalId: string, answers: Record<string, { answers: string[] }>) => boolean;
 	timeoutMs?: number;
 	now?: () => number;
 }
@@ -48,15 +61,36 @@ interface PendingEntry {
 	timer: NodeJS.Timeout;
 }
 
+const REQUEST_KIND: Record<EasycodeApprovalKind, string> = {
+	commandExecution: 'command',
+	fileChange: 'fileChange',
+	permissions: 'permissions',
+	userInput: 'input',
+	legacy: 'command',
+	dynamicTool: 'command',
+};
+
+const TITLE: Record<EasycodeApprovalKind, string> = {
+	commandExecution: 'Run a command',
+	fileChange: 'Change files',
+	permissions: 'Grant permissions',
+	userInput: 'Answer a question',
+	legacy: 'Run a command',
+	dynamicTool: 'Run a pong tool',
+};
+
+const AVAILABLE_DECISIONS = ['accept', 'decline', 'acceptForSession'];
+
 /**
- * Maps easyCode approvals to the pong approval semantics.
+ * Maps easyCode approvals to the pong approval semantics and the frozen M1-C
+ * contract.
  *
- * One approval becomes one host event (`easycode-approval`) with a stable key,
- * so the chat records it in the existing turn and history. The decision goes
- * back on the same connection. A session grant answers later approvals of the
- * same target without a card. A request that nobody answers before the deadline
- * is declined and audited, because the app-server blocks the turn while it
- * waits.
+ * One approval becomes one host event (`easycode-approval-requested`) with a
+ * stable key, so the chat records it in the existing turn and in history. The
+ * decision goes back on the same connection. A session grant answers later
+ * approvals of the same target without a card. A request that nobody answers
+ * before the deadline is declined and audited, because the app-server blocks
+ * the turn while it waits.
  *
  * The bridge is idempotent per `(threadId, turnId, itemId, approvalId)`: a
  * repeated request reuses the earlier decision and never opens a second card.
@@ -64,12 +98,16 @@ interface PendingEntry {
 export class EasycodeApprovalBridge {
 	private readonly pending = new Map<string, PendingEntry>();
 
-	private readonly decided = new Map<string, EasycodeApprovalDecision>();
+	/** Outcome per dedupe key, so the endpoint can answer 409 with the state. */
+	private readonly outcomes = new Map<
+		string,
+		{ decision: EasycodeApprovalDecision; expired: boolean }
+	>();
+
+	private readonly audits: EasycodeApprovalAuditEntry[] = [];
 
 	/** Resolvers of the callers that wait for one decision (dynamic tools). */
 	private readonly waiters = new Map<string, (decision: EasycodeApprovalDecision) => void>();
-
-	private readonly audits: EasycodeApprovalAuditEntry[] = [];
 
 	private approvedKeys: ReadonlySet<string> = new Set();
 
@@ -93,17 +131,6 @@ export class EasycodeApprovalBridge {
 		return `${request.threadId}:${request.turnId}:${request.itemId}:${request.approvalId}`;
 	}
 
-	/** Request an approval and wait for its decision. Used by the dynamic tools. */
-	async ask(request: EasycodeApprovalRequest): Promise<EasycodeApprovalDecision> {
-		const key = EasycodeApprovalBridge.keyOf(request);
-		const earlier = this.decided.get(key);
-		if (earlier !== undefined) return earlier;
-		return await new Promise<EasycodeApprovalDecision>((resolve) => {
-			this.waiters.set(key, resolve);
-			this.request(request);
-		});
-	}
-
 	/**
 	 * Handle one server approval request. The bridge answers through `decide`
 	 * when the user decides or the deadline expires; it never keeps a second
@@ -111,16 +138,16 @@ export class EasycodeApprovalBridge {
 	 */
 	request(request: EasycodeApprovalRequest): void {
 		const key = EasycodeApprovalBridge.keyOf(request);
-		const earlier = this.decided.get(key);
+		const earlier = this.outcomes.get(key);
 		if (earlier !== undefined) {
-			this.options.decide(request.approvalId, earlier);
+			this.answerIncoming(request, earlier.decision, undefined);
 			return;
 		}
 		if (this.pending.has(key)) return;
 
 		const grantKey = this.grantKeyOf(request);
 		if (this.approvedKeys.has(grantKey)) {
-			this.settle(key, request, grantKey, 'accept', false, this.now());
+			this.settle(key, request, grantKey, 'accept', false, this.now(), undefined);
 			return;
 		}
 
@@ -135,35 +162,51 @@ export class EasycodeApprovalBridge {
 		clearTimeout(entry.timer);
 		entry.timer = setTimeout(() => {
 			// The app-server blocks the turn, so an unanswered request must end.
-			this.settle(key, request, grantKey, 'decline', true, receivedAtMs);
+			this.settle(key, request, grantKey, 'decline', true, receivedAtMs, undefined);
 		}, this.timeoutMs);
 		entry.timer.unref();
 		this.pending.set(key, entry);
-		this.options.emit(
-			'easycode-approval',
-			toJsonValue({
-				approvalId: request.approvalId,
-				kind: request.kind,
-				itemId: request.itemId,
-				turnId: request.turnId,
-				command: request.command,
-				reason: request.reason,
-				deadlineAtMs: entry.deadlineAtMs,
-				...(request.questions !== undefined ? { questions: request.questions } : {}),
-			}),
-			{ key: `approval:${request.approvalId}` },
-		);
+		this.options.emit('easycode-approval-requested', this.toPayload(request, entry.deadlineAtMs), {
+			key: `approval:${request.approvalId}`,
+		});
 	}
 
-	/** Decide one pending approval. False when the id is unknown or already decided. */
-	resolve(approvalId: string, decision: EasycodeApprovalDecision): boolean {
+	/**
+	 * Answer a pending approval (M1-C endpoint path). Idempotent: a second call
+	 * returns the decided or expired state instead of changing the outcome.
+	 */
+	resolve(
+		approvalId: string,
+		decision: EasycodeApprovalDecision,
+		answers?: EasycodeApprovalAnswers,
+	): EasycodeResolveOutcome {
 		const found = [...this.pending.entries()].find(
 			([, entry]) => entry.request.approvalId === approvalId,
 		);
-		if (found === undefined) return false;
+		if (found === undefined) {
+			const outcome = [...this.outcomes.entries()].find(([key]) => key.endsWith(`:${approvalId}`));
+			if (outcome === undefined) return { status: 'unknown' };
+			return { status: outcome[1].expired ? 'expired' : 'decided' };
+		}
 		const [key, entry] = found;
-		this.settle(key, entry.request, entry.grantKey, decision, false, entry.receivedAtMs);
-		return true;
+		this.settle(key, entry.request, entry.grantKey, decision, false, entry.receivedAtMs, answers);
+		return { status: 'ok' };
+	}
+
+	/** Request an approval and wait for its decision. Used by the dynamic tools. */
+	async ask(request: EasycodeApprovalRequest): Promise<EasycodeApprovalDecision> {
+		const key = EasycodeApprovalBridge.keyOf(request);
+		const outcome = this.outcomes.get(key);
+		if (outcome !== undefined) return outcome.decision;
+		return await new Promise<EasycodeApprovalDecision>((resolve) => {
+			this.waiters.set(key, resolve);
+			this.request(request);
+		});
+	}
+
+	/** True while the approval waits for a decision. */
+	has(approvalId: string): boolean {
+		return [...this.pending.values()].some((entry) => entry.request.approvalId === approvalId);
 	}
 
 	/** Decide every approval of one turn. Returns how many were pending. */
@@ -172,7 +215,15 @@ export class EasycodeApprovalBridge {
 			([, entry]) => entry.request.turnId === turnId,
 		);
 		for (const [key, entry] of entries) {
-			this.settle(key, entry.request, entry.grantKey, decision, false, entry.receivedAtMs);
+			this.settle(
+				key,
+				entry.request,
+				entry.grantKey,
+				decision,
+				false,
+				entry.receivedAtMs,
+				undefined,
+			);
 		}
 		return entries.length;
 	}
@@ -217,20 +268,21 @@ export class EasycodeApprovalBridge {
 		decision: EasycodeApprovalDecision,
 		timedOut: boolean,
 		receivedAtMs: number,
+		answers: EasycodeApprovalAnswers | undefined,
 	): void {
 		const entry = this.pending.get(key);
 		if (entry !== undefined) {
 			clearTimeout(entry.timer);
 			this.pending.delete(key);
 		}
-		if (this.decided.has(key)) return;
-
-		this.decided.set(key, decision);
+		if (this.outcomes.has(key)) return;
+		this.outcomes.set(key, { decision, expired: timedOut });
 		const waiter = this.waiters.get(key);
 		if (waiter !== undefined) {
 			this.waiters.delete(key);
 			waiter(decision);
 		}
+
 		const decidedAtMs = this.now();
 		this.audits.push({
 			approvalId: request.approvalId,
@@ -258,17 +310,67 @@ export class EasycodeApprovalBridge {
 			if (decision === 'acceptForSession') void this.options.grants.grant(grantKey);
 			this.approvedKeys = new Set([...this.approvedKeys, grantKey]);
 		}
-		// Answer on the same connection. The turn never suspends on this path.
-		this.options.decide(request.approvalId, decision);
+		this.answerIncoming(request, decision, answers);
+	}
+
+	private answerIncoming(
+		request: EasycodeApprovalRequest,
+		decision: EasycodeApprovalDecision,
+		answers: EasycodeApprovalAnswers | undefined,
+	): void {
+		if (request.kind === 'userInput' && answers !== undefined && this.options.answerUserInput) {
+			const mapped: Record<string, { answers: string[] }> = {};
+			for (const [questionId, value] of Object.entries(answers)) {
+				mapped[questionId] = { answers: value };
+			}
+			this.options.answerUserInput(request.approvalId, mapped);
+			return;
+		}
+		this.options.decide?.(request.approvalId, decision);
+	}
+
+	private toPayload(request: EasycodeApprovalRequest, deadlineAtMs: number): JSONValue {
+		const input = readQuestion(request.questions);
+		return toJsonValue({
+			approvalId: request.approvalId,
+			threadId: request.threadId,
+			turnId: request.turnId,
+			itemId: request.itemId,
+			requestKind: REQUEST_KIND[request.kind],
+			title: TITLE[request.kind],
+			detail: request.reason,
+			command: request.command,
+			reason: request.reason,
+			availableDecisions: AVAILABLE_DECISIONS,
+			expiresAtMs: deadlineAtMs,
+			...(input?.question !== undefined ? { question: input.question } : {}),
+			...(input?.options !== undefined ? { options: input.options } : {}),
+		});
 	}
 }
 
-function readQuestionTarget(questions: unknown): string | undefined {
+function readQuestion(questions: unknown): { question: string; options: string[] } | undefined {
 	if (!Array.isArray(questions) || questions.length === 0) return undefined;
 	const first: unknown = questions[0];
 	if (typeof first !== 'object' || first === null) return undefined;
 	const header = Reflect.get(first, 'header');
-	return typeof header === 'string' ? header : undefined;
+	const question = Reflect.get(first, 'question');
+	const options = Reflect.get(first, 'options');
+	const labels = Array.isArray(options)
+		? options
+				.map((option) =>
+					typeof option === 'object' && option !== null ? Reflect.get(option, 'label') : undefined,
+				)
+				.filter((label): label is string => typeof label === 'string')
+		: [];
+	return {
+		question: typeof question === 'string' ? question : typeof header === 'string' ? header : '',
+		options: labels,
+	};
+}
+
+function readQuestionTarget(questions: unknown): string | undefined {
+	return readQuestion(questions)?.question;
 }
 
 /** Map the package approval callback to the bridge request. */

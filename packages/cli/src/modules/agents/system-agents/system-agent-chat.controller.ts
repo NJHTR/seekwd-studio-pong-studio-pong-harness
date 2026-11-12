@@ -17,7 +17,7 @@ import {
 } from '@pong/api-types';
 import type { AuthenticatedRequest } from '@pong/db';
 import { Body, Delete, Get, Param, Patch, Post, Query, RestController } from '@pong/decorators';
-import { BadRequestError, NotFoundError } from '@pong/errors';
+import { BadRequestError, ConflictError, NotFoundError } from '@pong/errors';
 import { isRecord } from '@pong/utils/is-record';
 import type { Response } from 'express';
 
@@ -34,6 +34,7 @@ import { PongMemory } from '../integrations/pong-memory';
 import { SYSTEM_CHAT_SOURCE } from '../utils/agent-thread-access';
 import { ownCheckpoint, threadMessagesResponse } from '../utils/messages-envelope';
 import { parseThreadListLimit } from '../utils/parse-thread-list-limit';
+import { EasycodeApprovalRegistry } from './easycode/easycode-approval-registry';
 import { SystemAgentExecutionService } from './system-agent-execution.service';
 
 /**
@@ -59,7 +60,41 @@ export class SystemAgentChatController {
 		private readonly checkpointStorage: PONGCheckpointStorage,
 		private readonly attachments: AgentChatAttachmentService,
 		private readonly memory: PongMemory,
+		private readonly approvalRegistry: EasycodeApprovalRegistry,
 	) {}
+
+	/**
+	 * Answer a pending easyCode approval of a session.
+	 *
+	 * The contract is frozen in `docs/architecture/m1c-approval-contract.md`:
+	 * 200 `{ ok: true }`, 404 for an unknown approval or another thread, 409 with
+	 * the state when the approval was already decided or expired. Every route of
+	 * this controller checks thread access first.
+	 */
+	@Post('/:agentId/threads/:threadId/approvals/:approvalId')
+	async decideApproval(
+		req: AuthenticatedRequest,
+		@Param('agentId') agentId: string,
+		@Param('threadId') threadId: string,
+		@Param('approvalId') approvalId: string,
+		@Body body: unknown,
+	) {
+		await this.systemAgents.getUsableThread(agentId, req.user, threadId);
+		const command = parseApprovalBody(body);
+		const bridge = this.approvalRegistry.find(threadId);
+		if (bridge === undefined) throw new NotFoundError('Approval not found');
+		const outcome = bridge.resolve(approvalId, command.decision, command.answers);
+		if (outcome.status === 'unknown') throw new NotFoundError('Approval not found');
+		if (outcome.status === 'decided') {
+			throw new ConflictError('The approval is already decided.', undefined, {
+				state: 'decided',
+			});
+		}
+		if (outcome.status === 'expired') {
+			throw new ConflictError('The approval expired.', undefined, { state: 'expired' });
+		}
+		return { ok: true };
+	}
 
 	/**
 	 * Queue a message. An existing session keeps its working project. A new
@@ -421,4 +456,34 @@ function decodeThreadCursor(cursor: string): AgentExecutionThreadKeyset {
 		// Reported below as an invalid cursor.
 	}
 	throw new BadRequestError('Invalid cursor');
+}
+
+type ApprovalDecisionInput = 'accept' | 'decline' | 'acceptForSession';
+
+interface ParsedApprovalBody {
+	decision: ApprovalDecisionInput;
+	answers?: Record<string, string[]>;
+}
+
+function parseApprovalBody(body: unknown): ParsedApprovalBody {
+	if (!isRecord(body)) throw new BadRequestError('A decision is required.');
+	const decision = body.decision;
+	if (decision !== 'accept' && decision !== 'decline' && decision !== 'acceptForSession') {
+		throw new BadRequestError('The decision must be accept, decline or acceptForSession.');
+	}
+	const rawAnswers = body.answers;
+	if (rawAnswers === undefined) return { decision };
+	if (!isRecord(rawAnswers)) throw new BadRequestError('The answers must be an object.');
+	const answers: Record<string, string[]> = {};
+	for (const [questionId, value] of Object.entries(rawAnswers)) {
+		if (!Array.isArray(value)) {
+			throw new BadRequestError('Each answer must be an array of strings.');
+		}
+		const strings = value.filter((entry): entry is string => typeof entry === 'string');
+		if (strings.length !== value.length) {
+			throw new BadRequestError('Each answer must be an array of strings.');
+		}
+		answers[questionId] = strings;
+	}
+	return { decision, answers };
 }

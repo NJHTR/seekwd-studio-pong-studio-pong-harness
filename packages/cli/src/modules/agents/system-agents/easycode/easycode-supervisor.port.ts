@@ -103,6 +103,8 @@ export interface EasycodeSupervisorPort {
 	onNotification(listener: (notification: EasycodeNotification) => void): () => void;
 	/** Answer a pending approval on the same connection. False when it is unknown. */
 	decideApproval(approvalId: string, decision: EasycodeApprovalDecision): boolean;
+	/** Answer a equestUserInput approval with the collected answers. */
+	answerUserInput(approvalId: string, answers: Record<string, { answers: string[] }>): boolean;
 	/** The approvals that still wait for a decision. */
 	pendingApprovals(): EasycodePendingApproval[];
 	/** The resolved `EASYCODE_HOME` of the child process, for diagnostics. */

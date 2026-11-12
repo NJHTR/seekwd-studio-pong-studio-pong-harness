@@ -62,7 +62,7 @@ describe('EasycodeApprovalBridge', () => {
 		bridge.request(request); // dedupe
 		bridge.resolve(request.approvalId, 'accept');
 
-		expect(events.filter((event) => event.name === 'easycode-approval')).toHaveLength(1);
+		expect(events.filter((event) => event.name === 'easycode-approval-requested')).toHaveLength(1);
 		expect(decided).toEqual([{ approvalId: request.approvalId, decision: 'accept' }]);
 		expect(bridge.audit).toHaveLength(1);
 		expect(bridge.audit[0]?.timedOut).toBe(false);
@@ -88,7 +88,7 @@ describe('EasycodeApprovalBridge', () => {
 
 		bridge.request(request);
 
-		expect(events.filter((event) => event.name === 'easycode-approval')).toHaveLength(0);
+		expect(events.filter((event) => event.name === 'easycode-approval-requested')).toHaveLength(0);
 		expect(decided).toEqual([{ approvalId: request.approvalId, decision: 'accept' }]);
 	});
 
