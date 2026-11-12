@@ -15,6 +15,8 @@ const i18n = useI18n();
 
 const logout = async () => {
 	try {
+		// Stop the demo auto-login so the sign-in page stays reachable after signing out.
+		document.cookie = 'pong_guest_disabled=1; path=/; max-age=31536000; SameSite=Lax';
 		// When OIDC is the active authentication method, sign out through the
 		// OIDC logout endpoint so the provider session can be terminated too
 		// (RP-Initiated Logout). The backend verifies that this specific

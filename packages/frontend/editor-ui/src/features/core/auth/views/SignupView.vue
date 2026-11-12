@@ -147,6 +147,8 @@ function getQueryParameter(key: 'token'): string | null {
 		:form="FORM_CONFIG"
 		:form-loading="loading"
 		:subtitle="inviteMessage"
+		title="创建账号"
+		description="注册后即可保存工作流、运行智能体，并把成果保存在本机。"
 		@submit="onSubmit"
 	/>
 </template>

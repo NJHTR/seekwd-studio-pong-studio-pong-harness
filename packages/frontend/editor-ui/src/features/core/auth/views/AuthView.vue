@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, useCssModule } from 'vue';
 
-import { PongFormBox } from '@pong/design-system';
+import { PongFormBox, PongLogo } from '@pong/design-system';
 import type { FormFieldValueUpdate, IFormBoxConfig } from '@/Interface';
 import type { EmailOrLdapLoginIdAndPassword } from './SigninView.vue';
 
@@ -56,6 +56,7 @@ const $style = useCssModule();
 		<div :class="$style.wrap">
 			<section :class="$style.card" aria-labelledby="auth-heading">
 				<div :class="$style.copy">
+					<PongLogo :class="$style.brand" size="large" />
 					<h1 id="auth-heading" :class="$style.title">{{ heading }}</h1>
 					<p :class="$style.description">{{ supportingText }}</p>
 				</div>
@@ -134,6 +135,11 @@ const $style = useCssModule();
 	padding-top: 2px;
 }
 
+.brand {
+	align-self: flex-start;
+	margin-bottom: 4px !important;
+}
+
 .title {
 	margin: 24px 0 16px;
 	color: #1f1f1f;
@@ -166,18 +172,44 @@ const $style = useCssModule();
 	background: transparent;
 }
 
-.formColumn :global(input),
+.formColumn :global(input:not([type='checkbox'])),
 .formColumn :global(select) {
 	height: 52px;
+	border: 1px solid #747775;
 	border-radius: 4px;
+	background: #fff;
 	font-size: 16px;
+}
+
+.formColumn :global(input:not([type='checkbox']):focus),
+.formColumn :global(select:focus) {
+	border-color: #0a73df;
+	outline: 1px solid #0a73df;
+}
+
+.formColumn :global(.el-input__wrapper) {
+	height: 52px;
+	border-radius: 4px;
+	background: #fff;
+	box-shadow: 0 0 0 1px #747775 inset;
+}
+
+.formColumn :global(.el-input__wrapper.is-focus) {
+	box-shadow: 0 0 0 2px #0a73df inset;
 }
 
 .formColumn :global(button[type='submit']) {
 	height: 40px;
 	border-radius: 4px;
+	background: #0a73df;
+	color: #fff;
 	font-size: 14px;
 	font-weight: 600;
+	box-shadow: none;
+}
+
+.formColumn :global(button[type='submit']:hover:not(:disabled)) {
+	background: #0869cc;
 }
 
 .guestSlot {

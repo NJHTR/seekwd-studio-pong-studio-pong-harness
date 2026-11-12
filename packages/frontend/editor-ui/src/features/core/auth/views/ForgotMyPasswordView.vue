@@ -101,5 +101,11 @@ const onSubmit = async (values: { [key: string]: string }) => {
 </script>
 
 <template>
-	<AuthView :form="formConfig" :form-loading="loading" @submit="onSubmit" />
+	<AuthView
+		:form="formConfig"
+		:form-loading="loading"
+		title="找回密码"
+		description="输入注册邮箱，我们会把重置链接发送到你的邮箱。"
+		@submit="onSubmit"
+	/>
 </template>

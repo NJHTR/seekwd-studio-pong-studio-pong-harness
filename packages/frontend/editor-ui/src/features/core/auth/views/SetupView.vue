@@ -113,6 +113,8 @@ const onSubmit = async (values: { [key: string]: string | boolean }) => {
 		:form="formConfig"
 		:form-loading="loading"
 		data-test-id="setup-form"
+		title="设置管理员账号"
+		description="这是本机实例的第一次启动。创建管理员账号后，即可开始搭建工作流。"
 		@submit="onSubmit"
 	/>
 </template>

@@ -222,6 +222,8 @@ const login = async (form: LoginRequestDto) => {
 			mfaCode: form.mfaCode,
 			mfaRecoveryCode: form.mfaRecoveryCode,
 		});
+		// A real sign-in re-enables the demo entry for a later visit.
+		document.cookie = 'pong_guest_disabled=; Max-Age=0; path=/';
 		loading.value = false;
 		await settingsStore.getSettings();
 
@@ -316,6 +318,8 @@ const enterAsGuest = async () => {
 					:sso-loading="ssoLoading"
 					:sso-required="ssoRequired"
 					:default-expanded="isInternalAuthRequested"
+					title="登录 Pong Studio"
+					description="使用企业身份登录，或展开邮箱登录。"
 					@submit="onEmailPasswordSubmitted"
 					@sso-login="onSsoLogin"
 				/>
@@ -325,6 +329,8 @@ const enterAsGuest = async () => {
 				:form="formConfig"
 				:form-loading="loading"
 				data-test-id="signin-form"
+				title="登录 Pong Studio"
+				description="登录后保存工作流与运行记录；也可以直接进入演示工作台试用。"
 				@submit="onEmailPasswordSubmitted"
 			>
 				<template #guest>
