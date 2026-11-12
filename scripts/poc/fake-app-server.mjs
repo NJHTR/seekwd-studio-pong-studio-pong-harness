@@ -15,7 +15,7 @@
 //                             "producer" writes it and reports a handoff reply.
 
 import { createInterface } from 'node:readline';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const mode = process.env.FAKE_MODE ?? 'approval';
@@ -25,6 +25,7 @@ const emitUsage = process.env.FAKE_USAGE === '1';
 const findingsPath = process.env.FAKE_FINDINGS ?? null;
 const findingsJson = process.env.FAKE_FINDINGS_JSON ?? null;
 const answerJson = process.env.FAKE_ANSWER_JSON ?? null;
+const writeFilesJson = process.env.FAKE_WRITE_FILES_JSON ?? null;
 
 let nextRequestId = 100;
 let nextTurnId = 1;
@@ -105,6 +106,14 @@ async function writeFakeArtifacts(threadId) {
 			await writeFile(path.join(cwd, 'findings.json'), `${findingsJson}\n`, 'utf8');
 		if (answerJson !== null)
 			await writeFile(path.join(cwd, 'answer.json'), `${answerJson}\n`, 'utf8');
+		if (writeFilesJson !== null) {
+			const files = JSON.parse(writeFilesJson);
+			for (const [relativePath, content] of Object.entries(files)) {
+				const target = path.join(cwd, relativePath);
+				await mkdir(path.dirname(target), { recursive: true });
+				await writeFile(target, String(content), 'utf8');
+			}
+		}
 	} catch {
 		// The workspace may not exist in a fault scenario; smoke does not care.
 	}

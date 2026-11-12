@@ -435,6 +435,13 @@ export class Harness {
 			approvalTimeoutMs: this.options.approvalTimeoutMs,
 			shutdownGraceMs: this.options.shutdownGraceMs,
 			shutdownInterruptTimeoutMs: this.options.shutdownInterruptTimeoutMs,
+			// M1: isolated per-agent EASYCODE_HOME and initialize-retry policy.
+			homeMode: this.options.homeMode,
+			easycodeHome: this.options.easycodeHome,
+			agentId: this.options.agentId,
+			maxInitRestarts: this.options.maxInitRestarts,
+			initRetryBaseMs: this.options.initRetryBaseMs,
+			initRetryMaxDelayMs: this.options.initRetryMaxDelayMs,
 		});
 		this.supervisor = supervisor;
 		this.startedAtMs = Date.now();
