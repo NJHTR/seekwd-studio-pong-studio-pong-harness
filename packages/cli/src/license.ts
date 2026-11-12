@@ -316,6 +316,9 @@ export class License implements LicenseProvider {
 	}
 
 	isLicensed(feature: BooleanLicenseFeature) {
+		// Local builds unlock every feature. Set `PONG_LOCAL_UNLOCKED=false` to
+		// restore normal license gating.
+		if (process.env.PONG_LOCAL_UNLOCKED !== 'false') return true;
 		return this.manager?.hasFeatureEnabled(feature) ?? false;
 	}
 
@@ -633,6 +636,7 @@ export class License implements LicenseProvider {
 
 	/** @deprecated Use `LicenseState` instead. */
 	isWithinUsersLimit() {
+		if (process.env.PONG_LOCAL_UNLOCKED !== 'false') return true;
 		// oxlint-disable-next-line typescript/no-deprecated
 		return this.getUsersLimit() === UNLIMITED_LICENSE_QUOTA;
 	}

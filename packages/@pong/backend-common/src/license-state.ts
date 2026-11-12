@@ -23,6 +23,14 @@ export class LicenseState {
 		if (!this.licenseProvider) throw new ProviderNotSetError();
 	}
 
+	/**
+	 * Local builds unlock every feature. Set `PONG_LOCAL_UNLOCKED=false` to restore
+	 * normal license gating.
+	 */
+	private get localUnlocked() {
+		return process.env.PONG_LOCAL_UNLOCKED !== 'false';
+	}
+
 	// --------------------
 	//     core queries
 	// --------------------
@@ -31,6 +39,7 @@ export class LicenseState {
 	 * If the feature is an array of strings, it checks if any of the features are licensed
 	 */
 	isLicensed(feature: BooleanLicenseFeature | BooleanLicenseFeature[]) {
+		if (this.localUnlocked) return true;
 		this.assertProvider();
 
 		if (typeof feature === 'string') return this.licenseProvider.isLicensed(feature);
@@ -263,6 +272,7 @@ export class LicenseState {
 	}
 
 	getMaxTeamProjects() {
+		if (this.localUnlocked) return UNLIMITED_LICENSE_QUOTA;
 		return this.getValue('quota:maxTeamProjects') ?? 0;
 	}
 

@@ -78,7 +78,12 @@ export const useProjectsStore = defineStore(STORES.PROJECTS, () => {
 		projects.value.filter((p) => p.type === ProjectTypes.Personal),
 	);
 	const teamProjects = computed(() => projects.value.filter((p) => p.type === ProjectTypes.Team));
-	const teamProjectsLimit = computed(() => settingsStore.settings.enterprise.projects.team.limit);
+	// Local build: no plan gating. A community instance reports 0 (disabled) for
+	// team projects, so treat that as unlimited instead of showing upgrade prompts.
+	const teamProjectsLimit = computed(() => {
+		const configured = settingsStore.settings.enterprise.projects.team.limit ?? 0;
+		return configured === 0 ? -1 : configured;
+	});
 	const isTeamProjectFeatureEnabled = computed<boolean>(() => teamProjectsLimit.value !== 0);
 	const hasUnlimitedProjects = computed<boolean>(() => teamProjectsLimit.value === -1);
 	const isTeamProjectLimitExceeded = computed<boolean>(

@@ -658,17 +658,8 @@ export const useGlobalEntityCreation = () => {
 	const createCredentialsAppendSlotName = computed(() => `item.append.${CREDENTIALS_MENU_ID}`);
 	const hasPermissionToCreateProjects = projectsStore.hasPermissionToCreateProjects;
 
-	const upgradeLabel = computed(() => {
-		if (settingsStore.isCloudDeployment) {
-			return i18n.baseText('generic.upgrade');
-		}
-
-		if (!projectsStore.isTeamProjectFeatureEnabled) {
-			return i18n.baseText('generic.enterprise');
-		}
-
-		return i18n.baseText('generic.upgrade');
-	});
+	// Local build: every feature is available, so there is nothing to upgrade to.
+	const upgradeLabel = computed(() => '');
 
 	return {
 		menu,
