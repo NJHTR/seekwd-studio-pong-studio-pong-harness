@@ -71,6 +71,22 @@ export class AgentExecutionThread extends WithTimestampsAndStringId {
 	@Column({ type: 'varchar', length: 36, nullable: true })
 	parentAgentId: string | null;
 
+	/** Which runtime executes the turns of this thread. `local` means the in-process runtime. */
+	@Column({
+		type: 'varchar',
+		length: 16,
+		default: 'local',
+		comment: 'local: in-process pong runtime; easycode: external app-server runtime',
+	})
+	runtimeKind: string;
+
+	/**
+	 * The thread id of the external runtime, when one executes the turns. A
+	 * resume needs it; null starts a new external thread.
+	 */
+	@Column({ type: 'varchar', length: 128, nullable: true })
+	runtimeThreadId: string | null;
+
 	@ManyToOne(() => Project, { onDelete: 'CASCADE' })
 	@JoinColumn({ name: 'projectId' })
 	project: Project;

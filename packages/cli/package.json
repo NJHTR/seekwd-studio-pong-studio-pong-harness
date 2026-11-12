@@ -179,6 +179,7 @@
     "@pong/db": "workspace:*",
     "@pong/decorators": "workspace:*",
     "@pong/di": "workspace:*",
+    "@pong/easycode-runtime": "workspace:*",
     "@pong/engine": "workspace:*",
     "@pong/errors": "workspace:*",
     "@pong/expression-runtime": "workspace:*",

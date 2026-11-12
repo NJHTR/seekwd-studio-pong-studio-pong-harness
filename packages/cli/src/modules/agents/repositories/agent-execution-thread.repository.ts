@@ -68,6 +68,12 @@ export interface AgentExecutionThreadKeysetPage {
 	hasMore: boolean;
 }
 
+/** Which runtime executes the turns of one thread, plus the thread id of an external runtime. */
+export interface AgentRuntimeBinding {
+	runtimeKind: string;
+	runtimeThreadId: string | null;
+}
+
 function ownedSessionWhere(agentId: string, ownerId: string, threadId: string) {
 	return {
 		id: threadId,
@@ -104,6 +110,36 @@ export class AgentExecutionThreadRepository extends BaseRepository<AgentExecutio
 		private readonly userDeletion: AgentUserDeletionRepository,
 	) {
 		super(AgentExecutionThread, dataSource.manager, txRunner);
+	}
+
+	/**
+	 * The runtime binding of one thread, or null when the thread does not exist.
+	 * A caller uses it to decide between resuming an external thread and starting
+	 * a new one.
+	 */
+	async findRuntimeBinding(
+		threadId: string,
+		ctx: OperationContext = {},
+	): Promise<AgentRuntimeBinding | null> {
+		const row = await this.managerFor(ctx).findOne(AgentExecutionThread, {
+			select: { id: true, runtimeKind: true, runtimeThreadId: true },
+			where: { id: threadId },
+		});
+		if (row === null) return null;
+		return { runtimeKind: row.runtimeKind, runtimeThreadId: row.runtimeThreadId };
+	}
+
+	/** Point a thread at the runtime that executes its turns, and at that runtime's thread. */
+	async saveRuntimeBinding(
+		threadId: string,
+		binding: AgentRuntimeBinding,
+		ctx: OperationContext = {},
+	): Promise<void> {
+		await this.managerFor(ctx).update(
+			AgentExecutionThread,
+			{ id: threadId },
+			{ runtimeKind: binding.runtimeKind, runtimeThreadId: binding.runtimeThreadId },
+		);
 	}
 
 	/** Keep project-agent sessions readable after their user is removed. */

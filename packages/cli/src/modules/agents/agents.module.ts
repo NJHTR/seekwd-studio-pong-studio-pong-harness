@@ -95,6 +95,13 @@ export class AgentsModule implements ModuleInterface {
 		const { AgentSecureRuntime } = await import('./runtime/agent-secure-runtime.js');
 		Container.get(AgentSecureRuntime);
 
+		// The easyCode runtime is opt-in (PONG_EASYCODE_RUNTIME=1). It reuses the
+		// system-agent seam, so a disabled flag registers nothing.
+		const { registerEasycodeSystemAgentFromContainer } = await import(
+			'./system-agents/easycode/register-easycode-agent.js'
+		);
+		await registerEasycodeSystemAgentFromContainer();
+
 		// Populate the integration registry with supported chat platforms.
 		// Adding a new platform is adding one subclass + one register() call.
 		const { ChatIntegrationRegistry } = await import('./integrations/agent-chat-integration.js');

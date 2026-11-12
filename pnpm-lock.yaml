@@ -4927,6 +4927,9 @@ importers:
       '@pong/di':
         specifier: workspace:*
         version: link:../@pong/di
+      '@pong/easycode-runtime':
+        specifier: workspace:*
+        version: link:../@pong/easycode-runtime
       '@pong/engine':
         specifier: workspace:*
         version: link:../@pong/engine
