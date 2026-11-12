@@ -2,21 +2,25 @@
 /**
  * M0 dev launcher for the C-first desktop delivery path.
  *
- * What it does:
- *   1. locates a Node 24+ runtime (pong requires >= 24) and the pong CLI entry;
- *   2. picks a free 127.0.0.1 port (never hardcodes 5678) and mints a one-time
- *      bootstrap token for the future M3 login handshake;
- *   3. spawns `pong start`, waits for /healthz, opens the default browser;
- *   4. on Ctrl+C: POST /internal/shutdown (best effort) -> close stdin ->
- *      wait -> kill the process tree.
+ * Contract (matches the Rust supervisor and the pong control plane):
+ *   1. mint a random `PONG_CONTROL_TOKEN`, spawn `pong start` on a free
+ *      127.0.0.1 port (never 5678);
+ *   2. wait `GET /healthz` (liveness), then `GET /healthz/readiness` — the
+ *      control plane is only usable after readiness, and cold starts can take
+ *      minutes, so the readiness budget defaults to 120 s;
+ *   3. verify `GET /internal/control/health` with `x-pong-control-token`;
+ *   4. open the browser;
+ *   5. on Ctrl+C: `POST /internal/control/shutdown` (202) -> wait for exit ->
+ *      close stdin fallback -> kill tree.
  *
- * This file is a development entry point. The Rust supervisor
+ * This is a development entry point. The Rust supervisor
  * (packages/desktop-shell/supervisor) is the reusable implementation: it adds
  * the Windows Job Object guarantee and is what M3 embeds into the Tauri shell.
  *
  * Usage:
  *   node scripts/start-desktop.mjs [--port N] [--no-open] [--smoke]
- *                                 [--user-folder PATH] [--node PATH] [--pong PATH]
+ *                                 [--readiness-timeout S] [--user-folder PATH]
+ *                                 [--node PATH] [--pong PATH]
  */
 import { spawn, spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
@@ -28,8 +32,12 @@ import { fileURLToPath } from 'node:url';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE = path.dirname(SCRIPT_DIR);
-const DEFAULT_TIMEOUT_SEC = 180;
-const DEFAULT_GRACE_MS = 5000;
+const CONTROL_TOKEN_HEADER = 'x-pong-control-token';
+const DEFAULT_LIVENESS_SEC = 60;
+const DEFAULT_READINESS_SEC = 120;
+const DEFAULT_SHUTDOWN_SEC = 30;
+const DEFAULT_STDIN_GRACE_MS = 5000;
+const CONTROL_PROBE_MS = 15000;
 
 const HELP = `start-desktop.mjs — M0 C-first dev launcher
 
@@ -37,21 +45,23 @@ USAGE
   node scripts/start-desktop.mjs [OPTIONS]
 
 OPTIONS
-  --port <N>            Use this 127.0.0.1 port (default: OS-assigned free port)
-  --no-open             Do not open the default browser
-  --smoke               Ready -> shutdown -> exit (CI/smoke; no browser)
-  --print-token         Print the one-time bootstrap token to stdout
-  --user-folder <PATH>  PONG_USER_FOLDER (default: <workspace>/.pong-data)
-  --node <PATH>         Node 24+ executable (default: auto-detect)
-  --pong <PATH>         pong CLI entry (default: <workspace>/packages/cli/bin/pong)
-  --health-timeout <S>  Seconds to wait for /healthz (default: ${DEFAULT_TIMEOUT_SEC})
-  --shutdown-grace <S>  Seconds to wait before killing the tree (default: 5)
-  -h, --help            Print this help
+  --port <N>                Use this 127.0.0.1 port (default: OS-assigned free port)
+  --no-open                 Do not open the default browser
+  --smoke                   Ready -> control shutdown -> assert -> exit (CI/smoke)
+  --print-token             Print the generated control token (dev only)
+  --user-folder <PATH>      PONG_USER_FOLDER (default: <workspace>/.pong-data)
+  --node <PATH>             Node 24+ executable (default: auto-detect)
+  --pong <PATH>             pong CLI entry (default: <workspace>/packages/cli/bin/pong)
+  --liveness-timeout <S>    Seconds to wait for /healthz (default: ${DEFAULT_LIVENESS_SEC})
+  --readiness-timeout <S>   Seconds to wait for /healthz/readiness (default: ${DEFAULT_READINESS_SEC})
+  --health-timeout <S>      Deprecated alias for --readiness-timeout
+  --shutdown-timeout <S>    Seconds to wait for exit after 202 (default: ${DEFAULT_SHUTDOWN_SEC})
+  -h, --help                Print this help
 
 ENVIRONMENT
-  PONG_DESKTOP_NODE     Node 24+ executable override
-  PONG_DESKTOP_PONG     pong CLI entry override
-  PONG_USER_FOLDER      Default --user-folder
+  PONG_DESKTOP_NODE         Node 24+ executable override
+  PONG_DESKTOP_PONG         pong CLI entry override
+  PONG_USER_FOLDER          Default --user-folder
 `;
 
 function parseArgs(argv) {
@@ -63,8 +73,9 @@ function parseArgs(argv) {
 		userFolder: process.env.PONG_USER_FOLDER,
 		node: process.env.PONG_DESKTOP_NODE,
 		pong: process.env.PONG_DESKTOP_PONG,
-		healthTimeoutSec: DEFAULT_TIMEOUT_SEC,
-		graceMs: DEFAULT_GRACE_MS,
+		livenessSec: DEFAULT_LIVENESS_SEC,
+		readinessSec: DEFAULT_READINESS_SEC,
+		shutdownSec: DEFAULT_SHUTDOWN_SEC,
 	};
 	for (let i = 0; i < argv.length; i += 1) {
 		const raw = argv[i];
@@ -104,11 +115,15 @@ function parseArgs(argv) {
 			case '--pong':
 				args.pong = next();
 				break;
-			case '--health-timeout':
-				args.healthTimeoutSec = Number(next());
+			case '--liveness-timeout':
+				args.livenessSec = Number(next());
 				break;
-			case '--shutdown-grace':
-				args.graceMs = Number(next()) * 1000;
+			case '--readiness-timeout':
+			case '--health-timeout':
+				args.readinessSec = Number(next());
+				break;
+			case '--shutdown-timeout':
+				args.shutdownSec = Number(next());
 				break;
 			default:
 				throw new Error(`unknown argument ${raw} (try --help)`);
@@ -181,12 +196,13 @@ function pickPort(preferred) {
 	});
 }
 
-function pongEnv({ port, userFolder }) {
+function pongEnv({ port, userFolder, controlToken }) {
 	return {
 		...process.env,
 		PONG_PORT: String(port),
 		PONG_LISTEN_ADDRESS: '127.0.0.1',
 		PONG_USER_FOLDER: userFolder,
+		PONG_CONTROL_TOKEN: controlToken,
 		// Desktop baseline: loopback only, no telemetry/cloud features, no POSIX
 		// settings-file permission enforcement on Windows.
 		PONG_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'false',
@@ -200,27 +216,46 @@ function pongEnv({ port, userFolder }) {
 	};
 }
 
-async function waitForHealth(port, timeoutSec, child) {
+async function requestStatus(url, { method = 'GET', token, timeoutMs = 2000 } = {}) {
+	const headers = token ? { [CONTROL_TOKEN_HEADER]: token } : {};
+	const response = await fetch(url, { method, headers, signal: AbortSignal.timeout(timeoutMs) });
+	return { status: response.status, body: await response.text() };
+}
+
+/** Polls one endpoint until 2xx within the budget; fails fast on child exit. */
+async function waitFor2xx({ url, budgetMs, label, exitedRef }) {
 	const startedAt = Date.now();
-	const deadline = startedAt + timeoutSec * 1000;
-	let exited = null;
-	child.once('exit', (code, signal) => {
-		exited = { code, signal };
-	});
-	while (Date.now() < deadline) {
-		if (exited)
-			throw new Error(`pong exited during startup (code=${exited.code} signal=${exited.signal})`);
+	while (Date.now() - startedAt < budgetMs) {
+		if (exitedRef.exited) {
+			throw new Error(`pong exited during startup (code=${exitedRef.exited.code})`);
+		}
 		try {
-			const response = await fetch(`http://127.0.0.1:${port}/healthz`, {
-				signal: AbortSignal.timeout(1500),
-			});
-			if (response.ok) return Date.now() - startedAt;
+			const { status } = await requestStatus(url, { timeoutMs: 1500 });
+			if (status >= 200 && status < 300) return Date.now() - startedAt;
 		} catch {
 			// not up yet
 		}
 		await new Promise((resolve) => setTimeout(resolve, 250));
 	}
-	throw new Error(`pong did not answer /healthz within ${timeoutSec}s`);
+	throw new Error(`${label} did not return 2xx within ${Math.round(budgetMs / 1000)}s`);
+}
+
+async function waitForControl({ port, token, exitedRef }) {
+	const url = `http://127.0.0.1:${port}/internal/control/health`;
+	const startedAt = Date.now();
+	let last = 'not probed';
+	while (Date.now() - startedAt < CONTROL_PROBE_MS) {
+		if (exitedRef.exited) throw new Error('pong exited during control probe');
+		try {
+			const { status, body } = await requestStatus(url, { token, timeoutMs: 1500 });
+			if (status === 200 && body.includes('"status":"ok"')) return Date.now() - startedAt;
+			last = `HTTP ${status}`;
+		} catch (error) {
+			last = error.message;
+		}
+		await new Promise((resolve) => setTimeout(resolve, 250));
+	}
+	throw new Error(`control plane not ready after ${CONTROL_PROBE_MS}ms (last: ${last})`);
 }
 
 function openBrowser(url) {
@@ -270,6 +305,15 @@ function waitForExit(child, timeoutMs) {
 	});
 }
 
+function walBytes(userFolder) {
+	const walPath = path.join(userFolder, '.pong', 'database.sqlite-wal');
+	try {
+		return { bytes: fs.statSync(walPath).size, walPath };
+	} catch {
+		return { bytes: 0, walPath };
+	}
+}
+
 async function main() {
 	const args = parseArgs(process.argv.slice(2));
 	if (args.help) {
@@ -281,63 +325,97 @@ async function main() {
 	const pongEntry = resolvePongEntry(args.pong);
 	const port = await pickPort(args.port);
 	const userFolder = args.userFolder ?? path.join(WORKSPACE, '.pong-data');
-	const bootstrapToken = crypto.randomBytes(32).toString('base64url');
+	const controlToken = process.env.PONG_CONTROL_TOKEN || crypto.randomBytes(32).toString('hex');
 
 	console.log(`[config] workspace=${WORKSPACE}`);
 	console.log(`[config] node=${nodeExe} (v${nodeVersion(nodeExe)})`);
 	console.log(`[config] pong=${pongEntry}`);
 	console.log(`[config] user_folder=${userFolder}`);
 	console.log(`[config] port=${port} listen=127.0.0.1`);
-	if (args.printToken)
-		console.log(`[bootstrap] token=${bootstrapToken} (reserved for M3 login endpoint)`);
+	console.log(
+		`[config] liveness=${args.livenessSec}s readiness=${args.readinessSec}s shutdown=${args.shutdownSec}s`,
+	);
+	if (args.printToken) console.log(`[bootstrap] control_token=${controlToken}`);
 
+	const exitedRef = { exited: null };
 	const child = spawn(nodeExe, [pongEntry, 'start'], {
 		cwd: WORKSPACE,
-		env: pongEnv({ port, userFolder }),
+		env: pongEnv({ port, userFolder, controlToken }),
 		stdio: ['pipe', 'inherit', 'inherit'],
 		windowsHide: false,
+	});
+	child.once('exit', (code, signal) => {
+		exitedRef.exited = { code, signal };
 	});
 	console.log(`[spawn] pong pid=${child.pid}`);
 
 	let shuttingDown = false;
 	const shutdown = async (reason) => {
-		if (shuttingDown) return;
+		if (shuttingDown) {
+			return { graceful: false, forced: false, httpStatus: null, exitWaitMs: 0, wal: -1 };
+		}
 		shuttingDown = true;
-		console.log(`[shutdown] start (${reason})`);
 		const startedAt = Date.now();
+		console.log(`[shutdown] start (${reason})`);
 
+		// 1) Control endpoint; only 202 counts.
+		let httpStatus = null;
+		let controlAccepted = false;
+		const exitStartedAt = Date.now();
 		try {
-			const response = await fetch(`http://127.0.0.1:${port}/internal/shutdown`, {
+			const response = await requestStatus(`http://127.0.0.1:${port}/internal/control/shutdown`, {
 				method: 'POST',
-				signal: AbortSignal.timeout(2000),
+				token: controlToken,
+				timeoutMs: 5000,
 			});
-			console.log(
-				`[shutdown] POST /internal/shutdown -> ${response.status} (endpoint may not exist yet)`,
-			);
+			httpStatus = response.status;
+			console.log(`[shutdown] POST /internal/control/shutdown -> ${response.status}`);
+			controlAccepted = response.status === 202;
 		} catch (error) {
-			console.log(`[shutdown] /internal/shutdown unavailable (${error.message})`);
+			console.log(`[shutdown] control shutdown failed (${error.message})`);
 		}
 
-		try {
-			child.stdin.end();
-			console.log('[shutdown] closed child stdin (EOF)');
-		} catch {
-			// already closed
+		// 2) Wait for graceful exit after 202.
+		let graceful = false;
+		let exitWaitMs = 0;
+		if (controlAccepted) {
+			graceful = await waitForExit(child, args.shutdownSec * 1000);
+			exitWaitMs = Date.now() - exitStartedAt;
+			console.log(
+				`[shutdown] ${graceful ? 'pong exited gracefully' : 'pong still alive'} after ${exitWaitMs}ms`,
+			);
 		}
 
-		const exitedGracefully = await waitForExit(child, args.graceMs);
-		if (!exitedGracefully) {
-			console.log(`[shutdown] pong still alive after ${args.graceMs}ms; killing tree`);
+		// 3) Fallback: close stdin, short grace, then kill tree.
+		let usedStdinFallback = false;
+		if (!graceful) {
+			usedStdinFallback = true;
+			try {
+				child.stdin.end();
+				console.log('[shutdown] closed child stdin (EOF fallback)');
+			} catch {
+				// already closed
+			}
+			graceful = await waitForExit(child, DEFAULT_STDIN_GRACE_MS);
+			if (graceful) {
+				exitWaitMs = Date.now() - exitStartedAt;
+				console.log('[shutdown] pong exited after stdin EOF');
+			}
+		}
+
+		const forced = !graceful;
+		if (forced) {
+			console.log('[shutdown] killing process tree');
 			killTree(child);
 			await waitForExit(child, 3000);
 		}
-		const elapsed = Date.now() - startedAt;
+		const totalMs = Date.now() - startedAt;
+		const { bytes: wal, walPath } = walBytes(userFolder);
 		console.log(
-			`[exit] graceful=${exitedGracefully} forced=${!exitedGracefully} exit_code=${child.exitCode} took=${elapsed}ms`,
+			`[exit] SHUTDOWN_HTTP=${httpStatus} graceful=${graceful} stdin_fallback=${usedStdinFallback} forced=${forced} exit_code=${child.exitCode} exit_wait_ms=${exitWaitMs} total_ms=${totalMs}`,
 		);
-		console.log(`SMOKE_GRACEFUL=${exitedGracefully}`);
-		console.log(`SMOKE_EXIT_CODE=${child.exitCode}`);
-		return exitedGracefully;
+		console.log(`[exit] WAL_BYTES=${wal} WAL_PATH=${walPath}`);
+		return { graceful, forced, httpStatus, exitWaitMs, totalMs, wal, walPath };
 	};
 
 	for (const signal of ['SIGINT', 'SIGTERM', 'SIGBREAK']) {
@@ -346,35 +424,79 @@ async function main() {
 		});
 	}
 
-	child.once('exit', (code, signal) => {
-		if (shuttingDown) return;
-		console.log(`[exit] pong exited unexpectedly code=${code} signal=${signal}`);
-		process.exit(code ?? 1);
-	});
-
-	let readyMs;
+	let livenessMs;
 	try {
-		readyMs = await waitForHealth(port, args.healthTimeoutSec, child);
+		console.log(`[stage] liveness: GET /healthz (budget ${args.livenessSec}s)`);
+		livenessMs = await waitFor2xx({
+			url: `http://127.0.0.1:${port}/healthz`,
+			budgetMs: args.livenessSec * 1000,
+			label: '/healthz',
+			exitedRef,
+		});
+		console.log(`[stage] liveness 200 in ${livenessMs}ms`);
 	} catch (error) {
-		console.error(`[health] ${error.message}`);
-		await shutdown('health-failed');
-		return 1;
+		console.error(`[stage] liveness FAILED: ${error.message}`);
+		const report = await shutdown('liveness-failed');
+		return report.forced ? 1 : 0;
+	}
+
+	let readinessMs;
+	try {
+		const remaining = args.readinessSec * 1000 - livenessMs;
+		console.log(
+			`[stage] readiness: GET /healthz/readiness (remaining budget ${Math.round(remaining / 1000)}s)`,
+		);
+		readinessMs = await waitFor2xx({
+			url: `http://127.0.0.1:${port}/healthz/readiness`,
+			budgetMs: Math.max(remaining, 1000),
+			label: '/healthz/readiness',
+			exitedRef,
+		});
+		console.log(`[stage] readiness 200 in ${readinessMs}ms (total ${livenessMs + readinessMs}ms)`);
+	} catch (error) {
+		console.error(
+			`[stage] readiness FAILED: ${error.message} (raise --readiness-timeout for cold starts)`,
+		);
+		const report = await shutdown('readiness-failed');
+		return report.forced ? 1 : 0;
+	}
+
+	let controlMs;
+	try {
+		controlMs = await waitForControl({ port, token: controlToken, exitedRef });
+		console.log(`[stage] control 200 in ${controlMs}ms`);
+	} catch (error) {
+		console.error(`[stage] control UNAVAILABLE: ${error.message}`);
+		console.error('[stage] WARN: shutdown will fall back to stdin + kill tree');
 	}
 
 	const url = `http://127.0.0.1:${port}`;
-	console.log(`[ready] /healthz 200 in ${readyMs}ms`);
-	console.log(`READY_MS=${readyMs}`);
-	console.log(`PORT=${port}`);
-	console.log(`PONG_PID=${child.pid}`);
-	console.log(`URL=${url}`);
+	console.log(`[ready] READY_TOTAL_MS=${livenessMs + readinessMs + (controlMs ?? 0)}`);
+	console.log(`[ready] LIVENESS_MS=${livenessMs}`);
+	console.log(`[ready] READINESS_MS=${readinessMs}`);
+	console.log(`[ready] CONTROL_READY=${controlMs !== undefined}`);
+	console.log(`[ready] PORT=${port}`);
+	console.log(`[ready] PONG_PID=${child.pid}`);
+	console.log(`[ready] URL=${url}`);
 
 	if (args.open) openBrowser(url);
 
 	if (args.smoke) {
-		const graceful = await shutdown('smoke');
-		console.log(`SMOKE=1`);
-		// Forced kill is expected until pong grows a control endpoint; smoke still passes.
-		return graceful ? 0 : 0;
+		const report = await shutdown('smoke');
+		const failures = [];
+		if (report.httpStatus !== 202) failures.push(`expected 202, got ${report.httpStatus}`);
+		if (!report.graceful) failures.push('not graceful');
+		if (report.forced) failures.push('forced kill');
+		if (child.exitCode !== 0) failures.push(`expected exit code 0, got ${child.exitCode}`);
+		if (report.wal !== 0) failures.push(`WAL not truncated (${report.wal} bytes)`);
+		console.log(`SMOKE_HTTP=${report.httpStatus}`);
+		console.log(`SMOKE_GRACEFUL=${report.graceful}`);
+		console.log(`SMOKE_FORCED=${report.forced}`);
+		console.log(`SMOKE_EXIT_CODE=${child.exitCode}`);
+		console.log(`SMOKE_WAL_BYTES=${report.wal}`);
+		console.log(`SMOKE=${failures.length === 0 ? 'PASS' : 'FAIL'}`);
+		console.log(`SMOKE_FAILURES=${failures.length === 0 ? 'none' : failures.join(' | ')}`);
+		return failures.length === 0 ? 0 : 1;
 	}
 
 	// Foreground: keep the promise chain alive until a signal arrives.

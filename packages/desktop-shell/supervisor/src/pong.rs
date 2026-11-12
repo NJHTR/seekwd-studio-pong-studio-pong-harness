@@ -82,12 +82,16 @@ pub struct PongProcess {
     pub child: Child,
     pub url: String,
     pub port: u16,
+    /// Random per-launch token, injected as `PONG_CONTROL_TOKEN`.
+    pub control_token: String,
+    /// `PONG_USER_FOLDER`, used by self-test to locate `database.sqlite-wal`.
+    pub user_folder: PathBuf,
 }
 
 /// Spawn `node <pong> start` on `127.0.0.1:<port>` with a minimal env contract.
 ///
-/// stdin is piped so the shutdown path can close it; stdout/stderr are inherited
-/// so dev mode keeps pong logs in the same terminal.
+/// stdin is piped so the shutdown fallback can close it; stdout/stderr are
+/// inherited so dev mode keeps pong logs in the same terminal.
 pub fn spawn(cfg: &Config, port: u16) -> io::Result<PongProcess> {
     let node = resolve_node(cfg)?;
     let entry = resolve_pong_entry(cfg)?;
@@ -95,6 +99,7 @@ pub fn spawn(cfg: &Config, port: u16) -> io::Result<PongProcess> {
     let cwd = cfg.cwd.clone().unwrap_or(workspace);
     let port_text = port.to_string();
     let user_folder = user_folder(cfg);
+    let control_token = crate::token::generate();
 
     let mut command = Command::new(&node);
     command
@@ -107,6 +112,8 @@ pub fn spawn(cfg: &Config, port: u16) -> io::Result<PongProcess> {
         .env("PONG_PORT", &port_text)
         .env("PONG_LISTEN_ADDRESS", "127.0.0.1")
         .env("PONG_USER_FOLDER", &user_folder)
+        // Enables GET /internal/control/health and POST /internal/control/shutdown.
+        .env("PONG_CONTROL_TOKEN", &control_token)
         // Desktop baseline: no telemetry, no cloud features, no POSIX permission
         // checks that cannot work on Windows.
         .env("PONG_ENFORCE_SETTINGS_FILE_PERMISSIONS", "false")
@@ -134,5 +141,7 @@ pub fn spawn(cfg: &Config, port: u16) -> io::Result<PongProcess> {
         child,
         url: crate::port::url(port),
         port,
+        control_token,
+        user_folder,
     })
 }
