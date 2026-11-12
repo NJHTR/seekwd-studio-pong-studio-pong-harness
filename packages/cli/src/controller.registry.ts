@@ -2,7 +2,7 @@ import type { ZodClass } from '@pong/api-types';
 import { inProduction } from '@pong/backend-common';
 import { GlobalConfig } from '@pong/config';
 import { type BooleanLicenseFeature } from '@pong/constants';
-import { isAuthenticatedRequest, UserRepository } from '@pong/db';
+import { isAuthenticatedRequest } from '@pong/db';
 import { ControllerRegistryMetadata } from '@pong/decorators';
 import type {
 	AccessScope,
@@ -208,7 +208,6 @@ export class ControllerRegistry {
 
 		if (!route.skipAuth) {
 			middlewares.push(
-				this.createGuestAutoLoginMiddleware(),
 				this.authService.createAuthMiddleware({
 					allowSkipMFA: route.allowSkipMFA ?? false,
 					allowSkipPreviewAuth: route.allowSkipPreviewAuth ?? false,
@@ -256,39 +255,6 @@ export class ControllerRegistry {
 				res.status(403).json({ status: 'error', message: 'Plan lacks license for this feature' });
 				return;
 			}
-			next();
-		};
-	}
-
-	/**
-	 * Demo mode: requests without a session are signed in as the demo account so the
-	 * workspace opens without a login step. Set `PONG_GUEST_AUTO_LOGIN=false` to
-	 * require authentication again. This exists for a local graduation-project demo;
-	 * do not enable it on an instance that is reachable by other people.
-	 */
-	private createGuestAutoLoginMiddleware(): RequestHandler {
-		return async (req, res, next) => {
-			if (process.env.PONG_GUEST_AUTO_LOGIN === 'false') return next();
-			if (this.authService.getCookieToken(req)) return next();
-			if ((req as Request & { user?: unknown }).user) return next();
-			// After an explicit sign-out the visitor asked for the login page, so do
-			// not sign them in again until the next successful login clears this cookie.
-			if ((req.cookies as Record<string, string | undefined> | undefined)?.pong_guest_disabled) {
-				return next();
-			}
-
-			const email = process.env.PONG_GUEST_EMAIL ?? 'demo@pong.local';
-
-			try {
-				const user = await Container.get(UserRepository).findByEmailWithRole(email);
-				if (user) {
-					this.authService.issueCookie(res, user, false);
-					(req as Request & { user?: unknown }).user = user;
-				}
-			} catch {
-				// The demo account may not exist yet; fall back to the normal auth flow.
-			}
-
 			next();
 		};
 	}

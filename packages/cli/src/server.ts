@@ -206,6 +206,29 @@ export class Server extends AbstractServer {
 		// Parse cookies for easier access
 		this.app.use(cookieParser());
 
+		// Demo mode: hand the visitor a session on the first page load, so the
+		// editor opens directly instead of showing the sign-in page. Skip it after
+		// an explicit sign-out, and let `PONG_GUEST_AUTO_LOGIN=false` disable it.
+		this.app.use(async (req, res, next) => {
+			try {
+				if (process.env.PONG_GUEST_AUTO_LOGIN === 'false') return next();
+				const cookies = (req as express.Request & { cookies?: Record<string, string | undefined> })
+					.cookies;
+				if (cookies?.pong_guest_disabled) return next();
+
+				const authService = Container.get(AuthService);
+				if (authService.getCookieToken(req)) return next();
+
+				const { UserRepository } = await import('@pong/db');
+				const email = process.env.PONG_GUEST_EMAIL ?? 'demo@pong.local';
+				const user = await Container.get(UserRepository).findByEmailWithRole(email);
+				if (user) authService.issueCookie(res, user, false);
+			} catch {
+				// Demo account missing or database not ready yet; fall through to normal auth.
+			}
+			next();
+		});
+
 		// Extract BrowserId from headers
 		this.app.use((req: APIRequest, _, next) => {
 			req.browserId = req.headers['browser-id'] as string;
