@@ -28,9 +28,12 @@ export * from './protocol';
 export {
 	AppServerSupervisor,
 	resolveDefaultExePath,
+	SupervisorInitError,
 } from './supervisor';
 export type {
 	ApprovalHostRequest,
+	EasyCodeHomeMode,
+	EasyCodeHomePlan,
 	HealthReport,
 	InterruptOutcome,
 	InterruptStatus,

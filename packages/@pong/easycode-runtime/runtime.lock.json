@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-12T16:14:58.523Z",
+  "generatedAt": "2026-11-12T17:47:49.200Z",
   "easycode": {
     "version": "easycode-cli 0.0.0",
     "exePath": "C:\\Users\\NJHTR\\IdeaProjects\\easyCode\\dist\\easyCode-windows-x64-portable\\bin\\easycode.exe",
@@ -87,6 +87,7 @@
       "v2/Turn.ts",
       "v2/TurnInterruptParams.ts",
       "v2/TurnInterruptResponse.ts",
+      "v2/SandboxPolicy.ts",
       "v2/CommandExecutionRequestApprovalParams.ts",
       "v2/CommandExecutionRequestApprovalResponse.ts",
       "v2/FileChangeRequestApprovalParams.ts",
@@ -94,6 +95,25 @@
       "v2/DynamicToolSpec.ts",
       "v2/DynamicToolCallParams.ts",
       "v2/DynamicToolCallResponse.ts"
-    ]
+    ],
+    "shapeGuards": {
+      "sandboxPolicyWorkspaceWriteNetworkAccess": "boolean"
+    },
+    "runtimeSubset": {
+      "fileCount": 10,
+      "snapshotHash": "a40ffa736ecbc48a9fb14ad136ef07dd7f994b817550fa493ed1fad25e6a89e4",
+      "files": [
+        "approvals.ts",
+        "dynamic-tools.ts",
+        "envelopes.ts",
+        "index.ts",
+        "initialize.ts",
+        "json.ts",
+        "methods.ts",
+        "parsers.ts",
+        "thread.ts",
+        "turn.ts"
+      ]
+    }
   }
 }

@@ -15,7 +15,17 @@
 //   slow-turn            A turn stays active until turn/interrupt arrives.
 //   ignore-stdin-close   The process stays alive after stdin ends, to test the
 //                        supervisor kill-tree fallback.
+//   sqlite-init-fail     initialize fails with the real
+//                        "failed to initialize sqlite state runtime" stderr for
+//                        FAKE_SQLITE_FAIL_ATTEMPTS processes, then succeeds.
+//   slow-handshake       initialize waits FAKE_SLOW_HANDSHAKE_MS and appends
+//                        start/end lines to FAKE_HOME_MARKER_FILE.
+//   exit-immediately     initialize prints an unrelated error and exits 1.
+//
+// FAKE_ECHO_HOME=1 returns EASYCODE_HOME in easycodeHome, to assert per-agent
+// home isolation.
 
+import { appendFile, readFile, writeFile } from 'node:fs/promises';
 import { createInterface } from 'node:readline';
 
 const mode = process.env.FAKE_APP_SERVER_MODE ?? 'normal';
@@ -151,15 +161,68 @@ async function runTurn(threadId, requestId) {
 	await completeTurn(turnId, 'completed');
 }
 
+function initializeResult() {
+	const home =
+		process.env.FAKE_ECHO_HOME === '1'
+			? (process.env.EASYCODE_HOME ?? 'unset-home')
+			: 'C:/fake-easycode-home';
+	return {
+		userAgent: 'fake-app-server/0.0.0',
+		easycodeHome: home,
+		platformFamily: 'windows',
+		platformOs: 'windows',
+	};
+}
+
+async function bumpCounter() {
+	const counterFile = process.env.FAKE_COUNTER_FILE;
+	if (counterFile === undefined) return 1;
+	let count = 0;
+	try {
+		count = Number.parseInt(await readFile(counterFile, 'utf8'), 10);
+	} catch {
+		count = 0;
+	}
+	if (!Number.isFinite(count)) count = 0;
+	const next = count + 1;
+	await writeFile(counterFile, String(next), 'utf8');
+	return next;
+}
+
+async function handleInitialize(id) {
+	if (mode === 'sqlite-init-fail') {
+		const attempt = await bumpCounter();
+		const failAttempts = Number.parseInt(process.env.FAKE_SQLITE_FAIL_ATTEMPTS ?? '0', 10);
+		if (Number.isFinite(failAttempts) && attempt <= failAttempts) {
+			process.stderr.write(
+				'Error: failed to initialize sqlite state runtime under C:/fake-home: failed to initialize state runtime at C:/fake-home\n',
+			);
+			process.exit(1);
+		}
+		sendResult(id, initializeResult());
+		return;
+	}
+	if (mode === 'slow-handshake') {
+		const markerFile = process.env.FAKE_HOME_MARKER_FILE;
+		const serverId = process.env.FAKE_SERVER_ID ?? 'server';
+		const delayMs = Number.parseInt(process.env.FAKE_SLOW_HANDSHAKE_MS ?? '150', 10);
+		if (markerFile !== undefined) await appendFile(markerFile, `start ${serverId} ${Date.now()}\n`);
+		await delay(Number.isFinite(delayMs) ? delayMs : 150);
+		if (markerFile !== undefined) await appendFile(markerFile, `end ${serverId} ${Date.now()}\n`);
+		sendResult(id, initializeResult());
+		return;
+	}
+	if (mode === 'exit-immediately') {
+		process.stderr.write('Error: unrelated configuration failure\n');
+		process.exit(1);
+	}
+	sendResult(id, initializeResult());
+}
+
 function handleClientRequest(message) {
 	const { id, method, params } = message;
 	if (method === 'initialize') {
-		sendResult(id, {
-			userAgent: 'fake-app-server/0.0.0',
-			easycodeHome: 'C:/fake-easycode-home',
-			platformFamily: 'windows',
-			platformOs: 'windows',
-		});
+		void handleInitialize(id);
 		return;
 	}
 	if (method === 'thread/start') {

@@ -12,6 +12,10 @@
 
 import { execFile, spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { constants as fsConstants } from 'node:fs';
+import { copyFile, mkdir, open, stat, unlink, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { ApprovalBroker } from './approval';
 import type { ApprovalDecision, ApprovalKind, PendingApprovalView } from './approval';
@@ -56,6 +60,42 @@ import { JsonlTransport } from './transport';
 import type { ResponseParser, TransportStats } from './transport';
 
 export type SupervisorState = 'stopped' | 'starting' | 'ready' | 'closing' | 'closed';
+
+/** easyCode home strategy for concurrent agents. */
+export type EasyCodeHomeMode = 'shared' | 'per-agent';
+
+export interface EasyCodeHomePlan {
+	mode: EasyCodeHomeMode;
+	/** Home that other agents share for the 'shared' mode. */
+	baseHome: string;
+	/** Child-specific home for 'per-agent' mode, otherwise null (inherit). */
+	childHome: string | null;
+	agentId: string | null;
+}
+
+/**
+ * Raised when every initialize attempt failed for a retryable reason
+ * (for example a first-run SQLite initialization race on a shared home).
+ */
+export class SupervisorInitError extends Error {
+	readonly attempts: number;
+	readonly retries: number;
+	readonly stderrTail: string;
+
+	constructor(
+		message: string,
+		attempts: number,
+		retries: number,
+		stderrTail: string,
+		options?: { cause?: unknown },
+	) {
+		super(message, options);
+		this.name = 'SupervisorInitError';
+		this.attempts = attempts;
+		this.retries = retries;
+		this.stderrTail = stderrTail;
+	}
+}
 
 /** Windows Job Object contract. The M1 Rust launcher implements this. */
 export interface JobObject {
@@ -107,6 +147,18 @@ export interface SupervisorOptions {
 	shutdownGraceMs?: number;
 	/** Interrupt wait during shutdown. Default: 5000 ms. */
 	shutdownInterruptTimeoutMs?: number;
+	/** Home strategy. Default: PONG_EASYCODE_HOME_MODE, else 'shared'. */
+	homeMode?: EasyCodeHomeMode;
+	/** Base EASYCODE_HOME for shared serialization and per-agent seeding. */
+	easycodeHome?: string;
+	/** Agent id for per-agent home. Default: generated. */
+	agentId?: string;
+	/** Restart limit after a retryable initialize failure. Default: 5. */
+	maxInitRestarts?: number;
+	/** First retry delay; doubles per attempt. Default: 200 ms. */
+	initRetryBaseMs?: number;
+	/** Retry delay cap. Default: 5000 ms. */
+	initRetryMaxDelayMs?: number;
 	logger?: SupervisorLogger;
 }
 
@@ -118,6 +170,9 @@ export interface HealthReport {
 	childExited: boolean;
 	transport: TransportStats;
 	pendingApprovals: number;
+	initAttempts: number;
+	initFailures: number;
+	homeMode: EasyCodeHomeMode;
 }
 
 export type InterruptStatus = 'interrupted' | 'no-active-turn' | 'no-response';
@@ -146,8 +201,29 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
 const DEFAULT_APPROVAL_TIMEOUT_MS = 120_000;
 const DEFAULT_SHUTDOWN_GRACE_MS = 5_000;
 const DEFAULT_SHUTDOWN_INTERRUPT_TIMEOUT_MS = 5_000;
+const DEFAULT_MAX_INIT_RESTARTS = 5;
+const DEFAULT_INIT_RETRY_BASE_MS = 200;
+const DEFAULT_INIT_RETRY_MAX_DELAY_MS = 5_000;
 const KILL_TIMEOUT_MS = 5_000;
 const NO_ACTIVE_TURN_CODE = -32600;
+const INIT_READY_MARKER_FILE = '.pong-runtime-init.ready';
+const INIT_LOCK_FILE = '.pong-runtime-init.lock';
+const INIT_LOCK_STALE_MS = 60_000;
+const INIT_LOCK_POLL_MS = 50;
+const INIT_LOCK_WAIT_MS = 20_000;
+const STDERR_TAIL_MAX_CHARS = 8_192;
+const SEEDED_HOME_FILES = ['config.toml', 'auth.json', 'installation_id'];
+/**
+ * Markers that mean "the SQLite state runtime lost a first-run race".
+ * The server does not retry these; the supervisor must restart it.
+ */
+const RETRYABLE_INIT_MARKERS = [
+	'failed to initialize sqlite state runtime',
+	'failed to initialize state runtime',
+	'failed to initialize sqlite',
+	'database is locked',
+	'sqlite_busy',
+];
 
 const NOOP_LOGGER: SupervisorLogger = {
 	debug: () => undefined,
@@ -170,6 +246,17 @@ export class AppServerSupervisor {
 	private readonly requestTimeoutMs: number;
 	private readonly shutdownGraceMs: number;
 	private readonly shutdownInterruptTimeoutMs: number;
+	private readonly maxInitRestarts: number;
+	private readonly initRetryBaseMs: number;
+	private readonly initRetryMaxDelayMs: number;
+	private readonly homeModeValue: EasyCodeHomeMode;
+	private readonly baseHome: string;
+	private readonly agentId: string | null;
+	private childHome: string | null = null;
+	private initAttemptCount = 0;
+	private initFailureCount = 0;
+	private lastInitErrorValue: Error | null = null;
+	private stderrTail = '';
 	private child: ChildProcess | null = null;
 	private transport: JsonlTransport | null = null;
 	private jobObject: JobObject | null;
@@ -191,6 +278,20 @@ export class AppServerSupervisor {
 		this.shutdownGraceMs = options.shutdownGraceMs ?? DEFAULT_SHUTDOWN_GRACE_MS;
 		this.shutdownInterruptTimeoutMs =
 			options.shutdownInterruptTimeoutMs ?? DEFAULT_SHUTDOWN_INTERRUPT_TIMEOUT_MS;
+		this.maxInitRestarts = options.maxInitRestarts ?? DEFAULT_MAX_INIT_RESTARTS;
+		this.initRetryBaseMs = options.initRetryBaseMs ?? DEFAULT_INIT_RETRY_BASE_MS;
+		this.initRetryMaxDelayMs = options.initRetryMaxDelayMs ?? DEFAULT_INIT_RETRY_MAX_DELAY_MS;
+		this.homeModeValue =
+			options.homeMode ?? parseHomeMode((options.env ?? process.env).PONG_EASYCODE_HOME_MODE);
+		this.baseHome =
+			options.easycodeHome ??
+			options.env?.EASYCODE_HOME ??
+			process.env.EASYCODE_HOME ??
+			path.join(homedir(), '.easycode');
+		this.agentId =
+			this.homeModeValue === 'per-agent'
+				? (options.agentId ?? `agent-${process.pid}-${randomUUID().slice(0, 8)}`)
+				: null;
 		this.jobObject = options.jobObject ?? null;
 		this.approvals = new ApprovalBroker({
 			defaultTimeoutMs: options.approvalTimeoutMs ?? DEFAULT_APPROVAL_TIMEOUT_MS,
@@ -220,15 +321,131 @@ export class AppServerSupervisor {
 		return this.handshake;
 	}
 
+	get homeMode(): EasyCodeHomeMode {
+		return this.homeModeValue;
+	}
+
+	/** Child EASYCODE_HOME. For shared mode this is the inherited base home. */
+	get easycodeHome(): string {
+		return this.childHome ?? this.baseHome;
+	}
+
+	get initAttempts(): number {
+		return this.initAttemptCount;
+	}
+
+	get initFailures(): number {
+		return this.initFailureCount;
+	}
+
+	get lastInitFailure(): Error | null {
+		return this.lastInitErrorValue;
+	}
+
+	get lastStderr(): string {
+		return this.stderrTail;
+	}
+
 	async start(): Promise<InitializeResponse> {
-		if (this.stateValue !== 'stopped')
+		if (this.stateValue !== 'stopped') {
 			throw new Error(`cannot start supervisor in state ${this.stateValue}`);
+		}
 		this.stateValue = 'starting';
 		this.startedAtMs = Date.now();
+		this.initAttemptCount = 0;
+		this.initFailureCount = 0;
+		this.lastInitErrorValue = null;
+		this.stderrTail = '';
+		try {
+			const response =
+				this.homeModeValue === 'shared'
+					? await this.startWithSharedHome()
+					: await this.startWithRetry();
+			this.handshake = response;
+			this.stateValue = 'ready';
+			return response;
+		} catch (error) {
+			this.stateValue = 'closed';
+			throw error;
+		}
+	}
+
+	/**
+	 * Shared home: the first start in a home initializes the SQLite state
+	 * runtime. Concurrent starts lose that race and the server does not retry.
+	 * A lock file serializes the first start across host processes, and a ready
+	 * marker lets later starts skip the lock. Retry covers the residual races.
+	 */
+	private async startWithSharedHome(): Promise<InitializeResponse> {
+		const markerPath = path.join(this.baseHome, INIT_READY_MARKER_FILE);
+		const lockPath = path.join(this.baseHome, INIT_LOCK_FILE);
+		await mkdir(this.baseHome, { recursive: true });
+		if (await fileExists(markerPath)) {
+			return await this.startWithRetry();
+		}
+		const lockStatus = await acquireInitLock(lockPath, markerPath);
+		try {
+			const response = await this.startWithRetry();
+			if (lockStatus === 'acquired') await this.writeReadyMarker(markerPath);
+			return response;
+		} finally {
+			if (lockStatus === 'acquired') await releaseInitLock(lockPath);
+		}
+	}
+
+	private async startWithRetry(): Promise<InitializeResponse> {
+		if (this.homeModeValue === 'per-agent') await this.preparePerAgentHome();
+		const totalAttempts = this.maxInitRestarts + 1;
+		for (let attempt = 1; attempt <= totalAttempts; attempt += 1) {
+			this.initAttemptCount = attempt;
+			this.stderrTail = '';
+			try {
+				const response = await this.startChildOnce();
+				this.handshake = response;
+				return response;
+			} catch (error) {
+				const normalized = error instanceof Error ? error : new HandshakeError(String(error));
+				this.lastInitErrorValue = normalized;
+				this.initFailureCount += 1;
+				const stderrText = this.stderrTail;
+				const retryable = isRetryableInitFailure(normalized, stderrText);
+				this.logger.warn(
+					`app-server init attempt ${attempt}/${totalAttempts} failed (retryable=${String(retryable)}): ${normalized.message}`,
+				);
+				await this.terminateChildForRetry();
+				if (!retryable) throw normalized;
+				if (attempt >= totalAttempts) {
+					throw new SupervisorInitError(
+						`easyCode app-server failed to initialize after ${attempt} attempt(s): ${normalized.message}`,
+						attempt,
+						attempt - 1,
+						stderrText,
+						{ cause: normalized },
+					);
+				}
+				const delayMs = Math.min(
+					this.initRetryBaseMs * 2 ** (attempt - 1),
+					this.initRetryMaxDelayMs,
+				);
+				await delay(delayMs);
+			}
+		}
+		throw (
+			this.lastInitErrorValue ??
+			new SupervisorInitError(
+				'easyCode app-server failed to initialize',
+				this.initAttemptCount,
+				this.initFailureCount,
+				this.stderrTail,
+			)
+		);
+	}
+
+	private async startChildOnce(): Promise<InitializeResponse> {
 		const args = this.options.appServerArgs ?? DEFAULT_APP_SERVER_ARGS;
 		const child = spawn(this.options.exePath, args, {
 			cwd: this.options.cwd,
-			env: this.options.env ?? process.env,
+			env: this.buildChildEnv(),
 			stdio: ['pipe', 'pipe', 'pipe'],
 			windowsHide: true,
 		});
@@ -267,33 +484,94 @@ export class AppServerSupervisor {
 			this.logger.error(`child error: ${error.message}`);
 		});
 		child.stderr.on('data', (chunk: Buffer) => {
-			this.logger.debug(`stderr: ${chunk.toString('utf8').trimEnd()}`);
+			const text = chunk.toString('utf8');
+			this.appendStderr(text);
+			this.logger.debug(`stderr: ${text.trimEnd()}`);
 		});
 
+		const capabilities: InitializeParams['capabilities'] = {
+			experimentalApi: true,
+			requestAttestation: false,
+		};
+		const clientInfo: ClientInfo = this.options.clientInfo ?? {
+			name: 'pong-easycode-runtime',
+			title: 'pong easyCode runtime',
+			version: '0.1.0',
+		};
+		const response = await transport.request(
+			CLIENT_METHODS.initialize,
+			{ clientInfo, capabilities } satisfies InitializeParams,
+			parseInitializeResponse,
+			{ timeoutMs: this.requestTimeoutMs },
+		);
+		transport.notify(CLIENT_NOTIFICATION_METHODS.initialized);
+		return response;
+	}
+
+	private buildChildEnv(): NodeJS.ProcessEnv {
+		const base = this.options.env ?? process.env;
+		if (this.childHome === null) return base;
+		return { ...base, EASYCODE_HOME: this.childHome };
+	}
+
+	private async preparePerAgentHome(): Promise<void> {
+		const childHome = path.join(this.baseHome, 'agents', this.agentId ?? 'default');
+		await mkdir(childHome, { recursive: true });
+		for (const fileName of SEEDED_HOME_FILES) {
+			try {
+				await copyFile(
+					path.join(this.baseHome, fileName),
+					path.join(childHome, fileName),
+					fsConstants.COPYFILE_EXCL,
+				);
+			} catch (error) {
+				if (!hasErrorCode(error, 'EEXIST') && !hasErrorCode(error, 'ENOENT')) {
+					this.logger.warn(
+						`per-agent home seed failed for ${fileName}: ${error instanceof Error ? error.message : String(error)}`,
+					);
+				}
+			}
+		}
+		this.childHome = childHome;
+		this.logger.debug(`per-agent EASYCODE_HOME: ${childHome}`);
+	}
+
+	private appendStderr(text: string): void {
+		if (text.length === 0) return;
+		const next = `${this.stderrTail}${text}`;
+		this.stderrTail =
+			next.length > STDERR_TAIL_MAX_CHARS ? next.slice(-STDERR_TAIL_MAX_CHARS) : next;
+	}
+
+	private async writeReadyMarker(markerPath: string): Promise<void> {
 		try {
-			const capabilities: InitializeParams['capabilities'] = {
-				experimentalApi: true,
-				requestAttestation: false,
-			};
-			const clientInfo: ClientInfo = this.options.clientInfo ?? {
-				name: 'pong-easycode-runtime',
-				title: 'pong easyCode runtime',
-				version: '0.1.0',
-			};
-			const response = await transport.request(
-				CLIENT_METHODS.initialize,
-				{ clientInfo, capabilities } satisfies InitializeParams,
-				parseInitializeResponse,
-				{ timeoutMs: this.requestTimeoutMs },
+			await writeFile(
+				markerPath,
+				`${JSON.stringify({ runtime: 'pong-easycode-runtime', exePath: this.options.exePath, at: new Date().toISOString() })}\n`,
+				'utf8',
 			);
-			transport.notify(CLIENT_NOTIFICATION_METHODS.initialized);
-			this.handshake = response;
-			this.stateValue = 'ready';
-			return response;
 		} catch (error) {
-			this.stateValue = 'closing';
-			await this.shutdown();
-			throw error instanceof Error ? error : new HandshakeError(String(error));
+			this.logger.warn(
+				`failed to write init ready marker: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
+	}
+
+	private async terminateChildForRetry(): Promise<void> {
+		const child = this.child;
+		const transport = this.transport;
+		this.child = null;
+		this.transport = null;
+		transport?.close('init retry');
+		if (child === null) return;
+		try {
+			child.stdin?.end();
+		} catch {
+			// The pipe may already be closed.
+		}
+		if (child.exitCode === null && child.signalCode === null) {
+			const exited = await waitForChildExit(child, 1_000);
+			if (!exited) await killProcessTree(child.pid);
 		}
 	}
 
@@ -438,6 +716,9 @@ export class AppServerSupervisor {
 				lastInboundAtMs: null,
 			},
 			pendingApprovals: this.approvals.pendingCount,
+			initAttempts: this.initAttemptCount,
+			initFailures: this.initFailureCount,
+			homeMode: this.homeModeValue,
 		};
 	}
 
@@ -731,14 +1012,17 @@ export class AppServerSupervisor {
 		signal: NodeJS.Signals | null;
 		reason: string;
 	}): void {
-		this.stateValue = 'closed';
+		// During an init retry the supervisor is still 'starting'. Only a final
+		// exit (ready or closing) closes the supervisor.
+		const wasStarting = this.stateValue === 'starting';
+		this.stateValue = wasStarting ? 'starting' : 'closed';
 		for (const [turnId, waiter] of this.turnWaiters) {
 			this.turnWaiters.delete(turnId);
 			clearTimeout(waiter.timer);
 			waiter.reject(new TransportClosedError(info.reason));
 		}
 		this.transport?.close('process exit');
-		this.events.onExit?.(info);
+		if (!wasStarting) this.events.onExit?.(info);
 	}
 
 	private requireTransport(): JsonlTransport {
@@ -769,6 +1053,94 @@ function readItemId(value: unknown): string {
 		if (typeof callId === 'string') return callId;
 	}
 	return 'unknown-item';
+}
+
+function parseHomeMode(value: string | undefined): EasyCodeHomeMode {
+	if (value === undefined || value === '') return 'shared';
+	if (value === 'shared' || value === 'per-agent') return value;
+	throw new ProtocolError(
+		`unsupported PONG_EASYCODE_HOME_MODE "${value}"; use "shared" or "per-agent"`,
+	);
+}
+
+function hasErrorCode(value: unknown, code: string): boolean {
+	return isRecord(value) && value.code === code;
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+	try {
+		await stat(filePath);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/** A retry is only useful for first-run SQLite contention, not for bad config or a missing exe. */
+function isRetryableInitFailure(error: Error, stderrText: string): boolean {
+	const haystack = `${error.message}\n${stderrText}`.toLowerCase();
+	return RETRYABLE_INIT_MARKERS.some((marker) => haystack.includes(marker));
+}
+
+async function isStaleInitLock(lockPath: string): Promise<boolean> {
+	try {
+		const info = await stat(lockPath);
+		return Date.now() - info.mtimeMs > INIT_LOCK_STALE_MS;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Cross-process first-start lock for a shared easyCode home.
+ * Returns 'ready' when another process finished initialization while we waited.
+ */
+async function acquireInitLock(
+	lockPath: string,
+	markerPath: string,
+): Promise<'acquired' | 'ready' | 'timeout'> {
+	const deadline = Date.now() + INIT_LOCK_WAIT_MS;
+	for (;;) {
+		try {
+			const handle = await open(lockPath, 'wx');
+			try {
+				await handle.writeFile(
+					JSON.stringify({ pid: process.pid, at: new Date().toISOString() }),
+					'utf8',
+				);
+			} finally {
+				await handle.close();
+			}
+			return 'acquired';
+		} catch (error) {
+			if (!hasErrorCode(error, 'EEXIST')) throw error;
+			if (await fileExists(markerPath)) return 'ready';
+			if (await isStaleInitLock(lockPath)) {
+				try {
+					await unlink(lockPath);
+				} catch {
+					// Another process won the unlink race.
+				}
+				continue;
+			}
+			if (Date.now() >= deadline) return 'timeout';
+			await delay(INIT_LOCK_POLL_MS);
+		}
+	}
+}
+
+async function releaseInitLock(lockPath: string): Promise<void> {
+	try {
+		await unlink(lockPath);
+	} catch {
+		// Already removed.
+	}
+}
+
+async function delay(ms: number): Promise<void> {
+	return await new Promise((resolve) => {
+		setTimeout(resolve, ms);
+	});
 }
 
 async function waitForChildExit(child: ChildProcess, timeoutMs: number): Promise<boolean> {

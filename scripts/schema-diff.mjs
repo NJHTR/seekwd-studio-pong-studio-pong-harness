@@ -38,6 +38,7 @@ const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
 const PACKAGE_DIR = path.join(REPO_ROOT, 'packages', '@pong', 'easycode-runtime');
 const LOCK_PATH = path.join(PACKAGE_DIR, 'runtime.lock.json');
 const METHODS_DIST = path.join(PACKAGE_DIR, 'dist', 'protocol', 'methods.js');
+const RUNTIME_PROTOCOL_DIR = path.join(PACKAGE_DIR, 'src', 'protocol');
 const DEFAULT_EXE =
 	'C:\\Users\\NJHTR\\IdeaProjects\\easyCode\\dist\\easyCode-windows-x64-portable\\bin\\easycode.exe';
 
@@ -58,6 +59,7 @@ const REQUIRED_GENERATED_TYPES = [
 	'v2/Turn.ts',
 	'v2/TurnInterruptParams.ts',
 	'v2/TurnInterruptResponse.ts',
+	'v2/SandboxPolicy.ts',
 	'v2/CommandExecutionRequestApprovalParams.ts',
 	'v2/CommandExecutionRequestApprovalResponse.ts',
 	'v2/FileChangeRequestApprovalParams.ts',
@@ -84,6 +86,7 @@ function parseArgs(argv) {
 	for (let i = 0; i < argv.length; i += 1) {
 		const key = argv[i];
 		if (key === '--write') args.write = true;
+		else if (key === '--check') args.check = true;
 		else if (key === '--json') args.json = true;
 		else if (key === '--skip-json-schema') args.skipJsonSchema = true;
 		else if (key === '--exe') {
@@ -136,6 +139,59 @@ async function snapshot(directory) {
 		fileCount: entries.length,
 		v2FileCount: entries.filter((entry) => entry.path.startsWith('v2/')).length,
 		snapshotHash: sha256(`easycode-app-server-protocol-snapshot-v1\n${lines}`),
+	};
+}
+
+async function runtimeProtocolSnapshot() {
+	const files = await walkFiles(RUNTIME_PROTOCOL_DIR);
+	const entries = [];
+	for (const file of files) {
+		const content = await readFile(file);
+		entries.push({
+			path: toPosix(path.relative(RUNTIME_PROTOCOL_DIR, file)),
+			sha256: sha256(content),
+		});
+	}
+	const sorted = entries
+		.slice()
+		.sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0));
+	const lines = sorted.map((entry) => `${entry.path} ${entry.sha256}\n`).join('');
+	return {
+		fileCount: entries.length,
+		snapshotHash: sha256(`easycode-runtime-protocol-subset-v1\n${lines}`),
+		files: sorted.map((entry) => entry.path),
+	};
+}
+
+function readWorkspaceWriteNetworkAccess(text) {
+	const marker = text.indexOf('"type": "workspaceWrite"');
+	if (marker < 0) return 'missing';
+	const segment = text.slice(marker, marker + 500);
+	const field = /networkAccess:\s*([A-Za-z]+)/u.exec(segment);
+	return field === null ? 'missing' : field[1];
+}
+
+/**
+ * The runtime's hand-written SandboxPolicy must match the generated wire shape.
+ * M0 A/B runs failed 6/6 because this field was typed as a string enum.
+ */
+async function verifyShapeGuards(tsDir) {
+	const errors = [];
+	let workspaceWriteNetworkAccess = 'missing';
+	try {
+		const text = await readFile(path.join(tsDir, 'v2', 'SandboxPolicy.ts'), 'utf8');
+		workspaceWriteNetworkAccess = readWorkspaceWriteNetworkAccess(text);
+	} catch {
+		errors.push('missing generated file v2/SandboxPolicy.ts');
+	}
+	if (workspaceWriteNetworkAccess !== 'boolean') {
+		errors.push(
+			`SandboxPolicy.workspaceWrite.networkAccess is "${workspaceWriteNetworkAccess}", expected "boolean"`,
+		);
+	}
+	return {
+		shapeGuards: { sandboxPolicyWorkspaceWriteNetworkAccess: workspaceWriteNetworkAccess },
+		errors,
 	};
 }
 
@@ -250,6 +306,7 @@ async function main() {
 	const exeBytes = await readFile(exe);
 	const { whitelist } = await loadWhitelist();
 	const whitelistHash = sha256(JSON.stringify(whitelist));
+	const runtimeProtocol = await runtimeProtocolSnapshot();
 
 	const tsDir = await mkdtemp(path.join(tmpdir(), 'easycode-schema-ts-'));
 	const jsonDir = await mkdtemp(path.join(tmpdir(), 'easycode-schema-json-'));
@@ -257,12 +314,16 @@ async function main() {
 	let generateTsSnapshot;
 	let generateJsonSchemaSnapshot = null;
 	let methodCounts = null;
+	let shapeGuards = null;
 	try {
 		await generateTs(exe, tsDir);
 		generateTsSnapshot = await snapshot(tsDir);
 		const verification = await verifyWhitelist(tsDir, whitelist);
 		errors.push(...verification.errors);
 		methodCounts = verification.methodCounts;
+		const shapeResult = await verifyShapeGuards(tsDir);
+		errors.push(...shapeResult.errors);
+		shapeGuards = shapeResult.shapeGuards;
 		if (!args.skipJsonSchema) {
 			await generateJsonSchema(exe, jsonDir);
 			generateJsonSchemaSnapshot = await snapshot(jsonDir);
@@ -289,6 +350,8 @@ async function main() {
 			whitelistHash,
 			methodCounts,
 			requiredTypes: REQUIRED_GENERATED_TYPES,
+			shapeGuards,
+			runtimeSubset: runtimeProtocol,
 		},
 	};
 
@@ -333,6 +396,22 @@ async function main() {
 			if (!sameJson(existingLock.protocol?.requiredTypes, lock.protocol.requiredTypes)) {
 				diffs.push('required payload type list changed');
 			}
+			if (
+				existingLock.protocol?.shapeGuards?.sandboxPolicyWorkspaceWriteNetworkAccess !==
+				lock.protocol.shapeGuards.sandboxPolicyWorkspaceWriteNetworkAccess
+			) {
+				diffs.push(
+					`SandboxPolicy.workspaceWrite.networkAccess changed: ${existingLock.protocol?.shapeGuards?.sandboxPolicyWorkspaceWriteNetworkAccess} -> ${lock.protocol.shapeGuards.sandboxPolicyWorkspaceWriteNetworkAccess}`,
+				);
+			}
+			if (
+				existingLock.protocol?.runtimeSubset?.snapshotHash !==
+				lock.protocol.runtimeSubset.snapshotHash
+			) {
+				diffs.push(
+					`runtime protocol subset changed: ${existingLock.protocol?.runtimeSubset?.snapshotHash} -> ${lock.protocol.runtimeSubset.snapshotHash}`,
+				);
+			}
 		}
 		diffs.push(...errors);
 	}
@@ -344,6 +423,8 @@ async function main() {
 		lockPath: LOCK_PATH,
 		generateTs: lock.schema.generateTs,
 		generateJsonSchema: lock.schema.generateJsonSchema,
+		runtimeProtocol,
+		shapeGuards,
 		methodCounts,
 		errors,
 		diffs,
@@ -364,6 +445,12 @@ async function main() {
 			);
 		}
 		console.log(`whitelist: ${whitelistHash}`);
+		console.log(
+			`runtime protocol subset: ${runtimeProtocol.fileCount} files, hash ${runtimeProtocol.snapshotHash}`,
+		);
+		console.log(
+			`shape guard SandboxPolicy.workspaceWrite.networkAccess: ${String(lock.protocol.shapeGuards.sandboxPolicyWorkspaceWriteNetworkAccess)}`,
+		);
 		if (args.write) console.log(`wrote ${LOCK_PATH}`);
 		for (const diff of diffs) console.log(`DIFF ${diff}`);
 		for (const error of errors) console.log(`ERROR ${error}`);

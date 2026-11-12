@@ -46,7 +46,8 @@ export type SandboxPolicy =
 	| {
 			type: 'workspaceWrite';
 			writableRoots: string[];
-			networkAccess: 'restricted' | 'enabled';
+			/** The wire field is a boolean. A string enum is rejected with "expected a boolean". */
+			networkAccess: boolean;
 			excludeTmpdirEnvVar: boolean;
 			excludeSlashTmp: boolean;
 	  };
