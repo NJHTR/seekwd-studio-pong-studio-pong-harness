@@ -1,0 +1,31 @@
+{
+  "name": "@pong/easycode-runtime",
+  "version": "0.1.0",
+  "description": "Protocol client and process supervisor for the easyCode app-server",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "runtime.lock.json"
+  ],
+  "scripts": {
+    "clean": "rimraf dist .turbo",
+    "build": "tsc -p tsconfig.build.json",
+    "build:unchecked": "tsc -p tsconfig.build.json --noCheck",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:dev": "vitest --silent=false",
+    "lint": "eslint --quiet .",
+    "lint:fix": "eslint --fix ."
+  },
+  "devDependencies": {
+    "@pong/eslint-config": "workspace:*",
+    "@pong/typescript-config": "workspace:*",
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:typescript",
+    "vitest": "catalog:"
+  },
+  "license": "UNLICENSED"
+}

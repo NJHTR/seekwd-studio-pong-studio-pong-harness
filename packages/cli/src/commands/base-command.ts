@@ -10,10 +10,15 @@ import {
 } from '@pong/backend-common';
 import { installGlobalProxyAgent } from '@pong/backend-network';
 import { NodeTypesProxy } from '@pong/backend-services';
-import { AzureBlobConfig, AzureByteStore, ObjectStoreConfig, S3ByteStore } from '@pong/blob-storage';
+import {
+	AzureBlobConfig,
+	AzureByteStore,
+	ObjectStoreConfig,
+	S3ByteStore,
+} from '@pong/blob-storage';
 import { GlobalConfig } from '@pong/config';
 import { LICENSE_FEATURES } from '@pong/constants';
-import { DbConnection, DeploymentKeyRepository } from '@pong/db';
+import { DbConnection, DeploymentKeyRepository, ExecutionRepository } from '@pong/db';
 import { SystemTaskMetadata } from '@pong/decorators';
 import type { SystemTaskClass } from '@pong/decorators';
 import { Container } from '@pong/di';
@@ -355,13 +360,34 @@ export abstract class BaseCommand<F = never> {
 
 	protected async exitSuccessFully() {
 		try {
-			await Promise.all([
-				CrashJournal.cleanup(),
-				this.dbConnection.close(),
-				Expression.disposeExpressionEngine(),
-			]);
+			await CrashJournal.cleanup();
+			await this.checkpointSqliteWal();
+			await Promise.all([this.dbConnection.close(), Expression.disposeExpressionEngine()]);
 		} finally {
 			process.exit();
+		}
+	}
+
+	/**
+	 * Flushes the SQLite write-ahead log before the connection closes.
+	 *
+	 * The pooled SQLite driver closes its read connections in parallel with the
+	 * write connection, so the last close need not be the one that checkpoints
+	 * the WAL. Without this, `database.sqlite-wal` survives a graceful shutdown
+	 * and keeps growing across starts.
+	 */
+	private async checkpointSqliteWal() {
+		if (
+			this.globalConfig.database.type !== 'sqlite' ||
+			!this.dbConnection.connectionState.connected
+		) {
+			return;
+		}
+
+		try {
+			await Container.get(ExecutionRepository).query('PRAGMA wal_checkpoint(TRUNCATE)');
+		} catch (error) {
+			this.logger.warn('Could not checkpoint the SQLite WAL during shutdown', { error });
 		}
 	}
 

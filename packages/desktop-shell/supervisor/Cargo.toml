@@ -1,0 +1,21 @@
+[package]
+name = "pong-desktop-supervisor"
+version = "0.1.0"
+edition = "2021"
+description = "M0 C-first desktop supervisor for pong-studio (browser delivery path)"
+publish = false
+license = "UNLICENSED"
+
+[[bin]]
+name = "pong-desktop-supervisor"
+path = "src/main.rs"
+
+# No external dependencies on purpose:
+# - offline `cargo build` works on a fresh Windows box (no crates.io fetch)
+# - the supervisor must stay small enough to be embedded in the M3 Tauri shell
+[dependencies]
+
+[profile.release]
+lto = "thin"
+strip = "symbols"
+panic = "abort"

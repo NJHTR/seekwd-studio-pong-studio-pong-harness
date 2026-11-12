@@ -41,6 +41,7 @@ import '@/controllers/ai.controller';
 import '@/controllers/ai-preference.controller';
 import '@/controllers/dynamic-node-parameters.controller';
 import '@/controllers/invitation.controller';
+import '@/controllers/internal-control.controller';
 import '@/controllers/me.controller';
 import '@/controllers/node-types.controller';
 import '@/controllers/oauth/oauth1-credential.controller';

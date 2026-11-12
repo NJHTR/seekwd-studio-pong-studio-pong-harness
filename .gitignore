@@ -103,3 +103,6 @@ packages/@pong/db/src/migrations/sqlite/index.ts
 packages/@pong/db/src/migrations/postgresdb/index.ts
 # Files that local dev tools generate, such as `pnpm telemetry:sink`
 .output/
+.pong-data/
+build-*.log
+target/

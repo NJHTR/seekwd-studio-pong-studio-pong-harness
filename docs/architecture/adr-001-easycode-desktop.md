@@ -243,6 +243,14 @@ spawn easycode app-server --listen stdio://   （cwd = 工作区根）
 - 取消：`turn/interrupt` → 等 `turnAborted` 或 5s → 仍无则重建进程（仅当有 active turn）。
 - 恢复：`thread/resume` 前 workspace 检查；不自动重放有副作用 turn。
 - 退出：`turn/interrupt` → 等终态 ≤5s → 关 stdin → 5s → 杀进程树（Job Object，KILL_ON_JOB_CLOSE）。
+### 5.4 M0 真机实测后的契约修正（2026-11-12）
+
+`docs/poc/m0-results.md` 记录的真实链路（1,398 事件、5 次审批、dynamic tool、30 turns/30 min、0 失败）修正了两条假设：
+
+1. **重复 `turn/interrupt` 无响应**：对已结束 turn 再次发送 interrupt，服务端在 30 s（专项测试 90 s）内**静默无响应**，不是 `invalid_request("no active turn")`。宿主必须自设 5 s 超时并视为已结束，禁止据此重建进程。
+2. **`thread/resume` 前置条件**：thread 必须已有落盘 rollout；新 thread 直接 resume 返回 `no rollout found`。宿主在 resume 前检查 rollout 存在性，否则 fork 新 thread。
+
+上述两条已在 `@pong/easycode-runtime` supervisor 中实现兜底并有单测覆盖。
 
 ---
 

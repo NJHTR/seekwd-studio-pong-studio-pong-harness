@@ -44,6 +44,7 @@ import { DurableScheduler } from '@/scheduling/durable-scheduler';
 import { PollJobProvider } from '@/scheduling/poll-trigger-node/poll-job-provider';
 import { mainSystemTasks } from '@/scheduling/system-tasks/main-system-tasks';
 import { Server } from '@/server';
+import { ControlPlaneService } from '@/services/control-plane.service';
 
 import { WaitTracker } from '@/wait-tracker';
 
@@ -453,6 +454,12 @@ export class Start extends BaseCommand<z.infer<typeof flagsSchema>> {
 				await Container.get(ExecutionRepository).query('VACUUM;');
 			}
 		}
+
+		// The control routes become reachable in `server.start()`, so the graceful
+		// shutdown they run must be registered first.
+		Container.get(ControlPlaneService).registerShutdownHandler(
+			this.onTerminationSignal('PONG_CONTROL'),
+		);
 
 		await this.server.start();
 
