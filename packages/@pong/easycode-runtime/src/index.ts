@@ -26,6 +26,18 @@ export {
 } from './errors';
 export * from './protocol';
 export {
+	cleanupRunHome,
+	cleanupStaleRunHomes,
+	createRunHome,
+	resolveEasyCodeBaseHome,
+	resolveRunHomesRoot,
+} from './run-home';
+export type {
+	EasyCodeRunHome,
+	EasyCodeRunHomeOptions,
+	StaleRunHomeCleanupResult,
+} from './run-home';
+export {
 	AppServerSupervisor,
 	resolveDefaultExePath,
 	SupervisorInitError,

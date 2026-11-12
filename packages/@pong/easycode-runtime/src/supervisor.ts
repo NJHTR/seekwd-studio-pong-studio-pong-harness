@@ -56,13 +56,28 @@ import type {
 	TurnStartParams,
 	TurnStartResponse,
 } from './protocol/turn';
+import {
+	cleanupRunHome,
+	cleanupStaleRunHomes,
+	createRunHome,
+	DEFAULT_STALE_RUN_HOME_TTL_MS,
+	resolveRunHomesRoot,
+	type EasyCodeRunHome,
+} from './run-home';
 import { JsonlTransport } from './transport';
 import type { ResponseParser, TransportStats } from './transport';
 
 export type SupervisorState = 'stopped' | 'starting' | 'ready' | 'closing' | 'closed';
 
-/** easyCode home strategy for concurrent agents. */
-export type EasyCodeHomeMode = 'shared' | 'per-agent';
+/**
+ * easyCode home strategy for one supervisor.
+ *
+ * - `per-run` (default): a fresh home for every start, removed when the run
+ *   ends. Blocks cross-run session/rollout recovery.
+ * - `shared`: one home for all agents. First start is serialized and retried.
+ * - `per-agent`: one home per agent, retained across runs.
+ */
+export type EasyCodeHomeMode = 'shared' | 'per-agent' | 'per-run';
 
 export interface EasyCodeHomePlan {
 	mode: EasyCodeHomeMode;
@@ -147,12 +162,16 @@ export interface SupervisorOptions {
 	shutdownGraceMs?: number;
 	/** Interrupt wait during shutdown. Default: 5000 ms. */
 	shutdownInterruptTimeoutMs?: number;
-	/** Home strategy. Default: PONG_EASYCODE_HOME_MODE, else 'shared'. */
+	/** Home strategy. Default: PONG_EASYCODE_HOME_MODE, else 'per-run'. */
 	homeMode?: EasyCodeHomeMode;
-	/** Base EASYCODE_HOME for shared serialization and per-agent seeding. */
+	/** Base EASYCODE_HOME for shared serialization and seeding. */
 	easycodeHome?: string;
 	/** Agent id for per-agent home. Default: generated. */
 	agentId?: string;
+	/** Parent directory for per-run homes. Default: PONG_EASYCODE_RUNS_ROOT or the temp dir. */
+	runsRoot?: string;
+	/** Stale per-run home TTL. Default: 24h. */
+	runHomeTtlMs?: number;
 	/** Restart limit after a retryable initialize failure. Default: 5. */
 	maxInitRestarts?: number;
 	/** First retry delay; doubles per attempt. Default: 200 ms. */
@@ -173,6 +192,8 @@ export interface HealthReport {
 	initAttempts: number;
 	initFailures: number;
 	homeMode: EasyCodeHomeMode;
+	/** Current per-run home, when homeMode is 'per-run'. */
+	runHome: string | null;
 }
 
 export type InterruptStatus = 'interrupted' | 'no-active-turn' | 'no-response';
@@ -251,8 +272,11 @@ export class AppServerSupervisor {
 	private readonly initRetryMaxDelayMs: number;
 	private readonly homeModeValue: EasyCodeHomeMode;
 	private readonly baseHome: string;
+	private readonly runsRoot: string;
+	private readonly runHomeTtlMs: number;
 	private readonly agentId: string | null;
 	private childHome: string | null = null;
+	private runHome: EasyCodeRunHome | null = null;
 	private initAttemptCount = 0;
 	private initFailureCount = 0;
 	private lastInitErrorValue: Error | null = null;
@@ -288,6 +312,8 @@ export class AppServerSupervisor {
 			options.env?.EASYCODE_HOME ??
 			process.env.EASYCODE_HOME ??
 			path.join(homedir(), '.easycode');
+		this.runsRoot = options.runsRoot ?? resolveRunHomesRoot(options.env ?? process.env);
+		this.runHomeTtlMs = options.runHomeTtlMs ?? DEFAULT_STALE_RUN_HOME_TTL_MS;
 		this.agentId =
 			this.homeModeValue === 'per-agent'
 				? (options.agentId ?? `agent-${process.pid}-${randomUUID().slice(0, 8)}`)
@@ -330,6 +356,11 @@ export class AppServerSupervisor {
 		return this.childHome ?? this.baseHome;
 	}
 
+	/** Current per-run home path, or null. The path is gone after cleanup. */
+	get runHomePath(): string | null {
+		return this.runHome?.home ?? null;
+	}
+
 	get initAttempts(): number {
 		return this.initAttemptCount;
 	}
@@ -357,6 +388,21 @@ export class AppServerSupervisor {
 		this.lastInitErrorValue = null;
 		this.stderrTail = '';
 		try {
+			if (this.homeModeValue === 'per-run') {
+				try {
+					const stale = await cleanupStaleRunHomes({
+						runsRoot: this.runsRoot,
+						staleTtlMs: this.runHomeTtlMs,
+					});
+					if (stale.removed.length > 0) {
+						this.logger.debug(`removed ${stale.removed.length} stale run home(s)`);
+					}
+				} catch (error) {
+					this.logger.warn(
+						`stale run home cleanup failed: ${error instanceof Error ? error.message : String(error)}`,
+					);
+				}
+			}
 			const response =
 				this.homeModeValue === 'shared'
 					? await this.startWithSharedHome()
@@ -366,6 +412,7 @@ export class AppServerSupervisor {
 			return response;
 		} catch (error) {
 			this.stateValue = 'closed';
+			await this.discardRunHome();
 			throw error;
 		}
 	}
@@ -400,6 +447,7 @@ export class AppServerSupervisor {
 			this.initAttemptCount = attempt;
 			this.stderrTail = '';
 			try {
+				if (this.homeModeValue === 'per-run') await this.prepareRunHome();
 				const response = await this.startChildOnce();
 				this.handshake = response;
 				return response;
@@ -413,6 +461,7 @@ export class AppServerSupervisor {
 					`app-server init attempt ${attempt}/${totalAttempts} failed (retryable=${String(retryable)}): ${normalized.message}`,
 				);
 				await this.terminateChildForRetry();
+				await this.discardRunHome();
 				if (!retryable) throw normalized;
 				if (attempt >= totalAttempts) {
 					throw new SupervisorInitError(
@@ -534,6 +583,35 @@ export class AppServerSupervisor {
 		}
 		this.childHome = childHome;
 		this.logger.debug(`per-agent EASYCODE_HOME: ${childHome}`);
+	}
+
+	/** per-run: create a fresh home seeded from the base home. */
+	private async prepareRunHome(): Promise<void> {
+		await this.discardRunHome();
+		const created = await createRunHome({
+			baseHome: this.baseHome,
+			runsRoot: this.runsRoot,
+			staleTtlMs: this.runHomeTtlMs,
+		});
+		this.runHome = created;
+		this.childHome = created.home;
+		this.logger.debug(`per-run EASYCODE_HOME: ${created.home}`);
+	}
+
+	/** Remove the run home if one exists. Safe to call twice and after a crash. */
+	private async discardRunHome(): Promise<void> {
+		const runHome = this.runHome;
+		this.runHome = null;
+		if (runHome !== null && this.childHome === runHome.home) this.childHome = null;
+		if (runHome === null) return;
+		try {
+			await cleanupRunHome(runHome);
+			this.logger.debug(`removed run home: ${runHome.home}`);
+		} catch (error) {
+			this.logger.warn(
+				`failed to remove run home ${runHome.home}: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
 	}
 
 	private appendStderr(text: string): void {
@@ -719,6 +797,7 @@ export class AppServerSupervisor {
 			initAttempts: this.initAttemptCount,
 			initFailures: this.initFailureCount,
 			homeMode: this.homeModeValue,
+			runHome: this.runHome?.home ?? null,
 		};
 	}
 
@@ -733,8 +812,16 @@ export class AppServerSupervisor {
 		const startedAt = Date.now();
 		const steps: string[] = [];
 		let forcedKill = false;
-		if (this.stateValue === 'closed')
-			return { steps: ['already-closed'], durationMs: 0, forcedKill };
+		if (this.stateValue === 'closed') {
+			const hadRunHome = this.runHome !== null;
+			await this.discardRunHome();
+			if (hadRunHome) steps.push('run-home-cleaned');
+			return {
+				steps: ['already-closed', ...steps],
+				durationMs: Date.now() - startedAt,
+				forcedKill,
+			};
+		}
 		this.stateValue = 'closing';
 		const child = this.child;
 		const transport = this.transport;
@@ -766,6 +853,9 @@ export class AppServerSupervisor {
 			}
 		}
 		transport?.close('supervisor shutdown');
+		const hadRunHome = this.runHome !== null;
+		await this.discardRunHome();
+		if (hadRunHome) steps.push('run-home-cleaned');
 		if (this.jobObject !== null) {
 			try {
 				await this.jobObject.close();
@@ -1014,7 +1104,9 @@ export class AppServerSupervisor {
 	}): void {
 		// During an init retry the supervisor is still 'starting'. Only a final
 		// exit (ready or closing) closes the supervisor.
-		const wasStarting = this.stateValue === 'starting';
+		const previousState = this.stateValue;
+		const wasStarting = previousState === 'starting';
+		const wasClosing = previousState === 'closing';
 		this.stateValue = wasStarting ? 'starting' : 'closed';
 		for (const [turnId, waiter] of this.turnWaiters) {
 			this.turnWaiters.delete(turnId);
@@ -1022,7 +1114,13 @@ export class AppServerSupervisor {
 			waiter.reject(new TransportClosedError(info.reason));
 		}
 		this.transport?.close('process exit');
-		if (!wasStarting) this.events.onExit?.(info);
+		if (!wasStarting) {
+			// A crash still ends the run: remove its home so a later agent
+			// cannot recover session/rollout data from it. During shutdown the
+			// owner of the run removes the home itself.
+			if (!wasClosing) void this.discardRunHome();
+			this.events.onExit?.(info);
+		}
 	}
 
 	private requireTransport(): JsonlTransport {
@@ -1056,10 +1154,10 @@ function readItemId(value: unknown): string {
 }
 
 function parseHomeMode(value: string | undefined): EasyCodeHomeMode {
-	if (value === undefined || value === '') return 'shared';
-	if (value === 'shared' || value === 'per-agent') return value;
+	if (value === undefined || value === '') return 'per-run';
+	if (value === 'shared' || value === 'per-agent' || value === 'per-run') return value;
 	throw new ProtocolError(
-		`unsupported PONG_EASYCODE_HOME_MODE "${value}"; use "shared" or "per-agent"`,
+		`unsupported PONG_EASYCODE_HOME_MODE "${value}"; use "per-run", "per-agent", or "shared"`,
 	);
 }
 

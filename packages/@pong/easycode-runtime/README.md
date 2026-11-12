@@ -113,11 +113,62 @@ initialization race. The server prints
 
 | mode | behavior |
 |---|---|
-| `shared` (default) | All agents use one home. First start is serialized; retry covers contention. |
+| `per-run` (default) | Every start creates a fresh home under the runs root and removes it when the run ends (success, failure, or crash). No session or rollout data survives the run. |
+| `shared` | All agents use one home. First start is serialized; retry covers contention. |
 | `per-agent` | Each supervisor gets `<base>/agents/<agentId>` as `EASYCODE_HOME`. `config.toml`, `auth.json`, and `installation_id` are copied from the base home when missing. |
 
 `agentId` defaults to `agent-<pid>-<random>`. The ready marker and lock files
 live only in `shared` mode. Delete the marker to force re-serialization.
+
+## Per-run home lifecycle
+
+easyCode `workspaceWrite` only limits writes. Reads of absolute paths are not
+restricted, so a later agent can read a sibling agent's rollout JSONL under a
+shared home and recover handed-off values (see `docs/poc/m1-ab-baseline.md`).
+The per-run home removes the target of that read after the run.
+
+```ts
+import {
+  createRunHome,
+  cleanupRunHome,
+  cleanupStaleRunHomes,
+} from '@pong/easycode-runtime';
+
+const runHome = await createRunHome({ baseHome: 'C:/Users/me/.easycode' });
+// runHome.home = <os.tmpdir()>/pong-easycode-runs/run-<time>-<random>
+// config.toml / auth.json / installation_id are seeded, session data is not.
+try {
+  await runAgentWithHome(runHome.home);
+} finally {
+  await cleanupRunHome(runHome);
+}
+```
+
+With `homeMode: 'per-run'` the supervisor does this automatically:
+
+- Before the first start it removes stale run homes older than 24 h
+  (`runHomeTtlMs`, default 24 h, or `PONG_EASYCODE_RUNS_ROOT` for the parent
+  directory).
+- It creates the home before each initialize attempt and passes it as the child
+  `EASYCODE_HOME`. A failed attempt discards its home; the next attempt gets a
+  fresh one.
+- `shutdown()` removes the home (`steps` contains `run-home-cleaned`). A crash
+  triggers the same cleanup from the child exit handler.
+- `runHomePath` exposes the current path; `healthCheck().runHome` reports it.
+
+Trade-off: a per-run home deletes the thread rollout and session DBs, so
+`thread/resume` across supervisor restarts is not possible. Use `shared` or
+`per-agent` when resumability is required, and accept the read-isolation risk
+documented in `docs/architecture/easycode-isolation.md`. `per-agent` still
+retains sessions between runs.
+
+Smoke test without a real binary or model:
+
+```bash
+pnpm --filter @pong/easycode-runtime build
+node scripts/poc/isolation-smoke.mjs --smoke
+```
+
 
 ## M0 observations
 

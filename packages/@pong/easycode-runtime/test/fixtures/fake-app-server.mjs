@@ -21,11 +21,15 @@
 //   slow-handshake       initialize waits FAKE_SLOW_HANDSHAKE_MS and appends
 //                        start/end lines to FAKE_HOME_MARKER_FILE.
 //   exit-immediately     initialize prints an unrelated error and exits 1.
+//   write-rollout        initialize writes a fake rollout JSONL under
+//                        $EASYCODE_HOME/sessions, to model the M1 A/B leak.
+//   crash-after-ready    initialize succeeds, then the process exits 1.
 //
-// FAKE_ECHO_HOME=1 returns EASYCODE_HOME in easycodeHome, to assert per-agent
-// home isolation.
+// FAKE_ECHO_HOME=1 returns EASYCODE_HOME in easycodeHome, to assert home
+// isolation.
 
-import { appendFile, readFile, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { createInterface } from 'node:readline';
 
 const mode = process.env.FAKE_APP_SERVER_MODE ?? 'normal';
@@ -216,7 +220,25 @@ async function handleInitialize(id) {
 		process.stderr.write('Error: unrelated configuration failure\n');
 		process.exit(1);
 	}
+	if (mode === 'write-rollout') {
+		const home = process.env.EASYCODE_HOME;
+		if (home !== undefined && home !== '') {
+			const sessions = path.join(home, 'sessions');
+			await mkdir(sessions, { recursive: true });
+			await writeFile(
+				path.join(sessions, 'rollout-leak-probe.jsonl'),
+				'{"type":"response_item","secret":"m1ab-changed-value"}\n',
+				'utf8',
+			);
+		}
+	}
 	sendResult(id, initializeResult());
+	if (mode === 'crash-after-ready') {
+		setTimeout(() => {
+			process.stderr.write('Error: simulated app-server crash\n');
+			process.exit(1);
+		}, 30);
+	}
 }
 
 function handleClientRequest(message) {
