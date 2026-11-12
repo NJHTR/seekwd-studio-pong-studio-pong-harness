@@ -24,6 +24,9 @@ export const EASYCODE_HOME_ENV = 'PONG_EASYCODE_HOME';
 /** A turn interrupt that takes longer than this is treated as ended (ADR-02/M0). */
 export const EASYCODE_CLOSE_TIMEOUT_MS = 5_000;
 
+/** The deadline of one approval. The app-server blocks the turn until the host answers. */
+export const EASYCODE_APPROVAL_TIMEOUT_MS = 120_000;
+
 /** True when the instance opts in to the easyCode runtime. */
 export function isEasycodeRuntimeEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
 	const value = env[EASYCODE_ENABLE_ENV];

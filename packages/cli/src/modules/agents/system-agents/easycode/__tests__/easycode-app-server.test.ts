@@ -9,6 +9,7 @@ import { mock } from 'vitest-mock-extended';
 
 import type { AgentExecutionThread } from '../../../entities/agent-execution-thread.entity';
 import type { AgentExecutionThreadRepository } from '../../../repositories/agent-execution-thread.repository';
+import type { AgentThreadGrantRepository } from '../../../repositories/agent-thread-grant.repository';
 import { EasycodeAgentProvider } from '../easycode-agent.provider';
 import { EasycodeSupervisorFactoryService } from '../easycode-supervisor-factory.service';
 import type { SystemAgentTurn } from '../../system-agent.types';
@@ -78,10 +79,16 @@ describe('easyCode runtime against a fake app-server', () => {
 		const threadRepository = mock<AgentExecutionThreadRepository>();
 		threadRepository.findRuntimeBinding.mockResolvedValue(null);
 		const factory = new EasycodeSupervisorFactoryService(noopLogger);
-		const provider = new EasycodeAgentProvider(threadRepository, {
-			create: (options: EasycodeSupervisorCreateOptions) =>
-				factory.create({ ...options, exePath: process.execPath, appServerArgs: FIXTURE_ARGS }),
-		} as unknown as EasycodeSupervisorFactoryService);
+		const grantsRepository = mock<AgentThreadGrantRepository>();
+		grantsRepository.findKeys.mockResolvedValue(new Set());
+		const provider = new EasycodeAgentProvider(
+			threadRepository,
+			{
+				create: (options: EasycodeSupervisorCreateOptions) =>
+					factory.create({ ...options, exePath: process.execPath, appServerArgs: FIXTURE_ARGS }),
+			} as unknown as EasycodeSupervisorFactoryService,
+			grantsRepository,
+		);
 
 		const handle = await provider.prepareTurn(startTurn());
 		const run = await handle.agent.stream('say hi', {});
@@ -107,10 +114,16 @@ describe('easyCode runtime against a fake app-server', () => {
 		const threadRepository = mock<AgentExecutionThreadRepository>();
 		threadRepository.findRuntimeBinding.mockResolvedValue(null);
 		const factory = new EasycodeSupervisorFactoryService(noopLogger);
-		const provider = new EasycodeAgentProvider(threadRepository, {
-			create: (options: EasycodeSupervisorCreateOptions) =>
-				factory.create({ ...options, exePath: process.execPath, appServerArgs: FIXTURE_ARGS }),
-		} as unknown as EasycodeSupervisorFactoryService);
+		const grantsRepository = mock<AgentThreadGrantRepository>();
+		grantsRepository.findKeys.mockResolvedValue(new Set());
+		const provider = new EasycodeAgentProvider(
+			threadRepository,
+			{
+				create: (options: EasycodeSupervisorCreateOptions) =>
+					factory.create({ ...options, exePath: process.execPath, appServerArgs: FIXTURE_ARGS }),
+			} as unknown as EasycodeSupervisorFactoryService,
+			grantsRepository,
+		);
 		const handle = await provider.prepareTurn(startTurn());
 		// Start the turn, then settle it as cancelled while the fake app-server
 		// still runs it. The interrupt and the shutdown must finish within the

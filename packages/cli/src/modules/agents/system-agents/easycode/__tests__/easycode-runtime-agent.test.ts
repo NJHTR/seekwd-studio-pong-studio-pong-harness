@@ -65,6 +65,14 @@ class FakeSupervisor implements EasycodeSupervisorPort {
 		this.shutDown = true;
 	}
 
+	decideApproval(_approvalId: string, _decision: string): boolean {
+		return false;
+	}
+
+	pendingApprovals(): [] {
+		return [];
+	}
+
 	onNotification(listener: (notification: EasycodeNotification) => void): () => void {
 		this.listeners.add(listener);
 		return () => {

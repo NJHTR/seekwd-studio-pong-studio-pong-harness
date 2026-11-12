@@ -4,6 +4,7 @@ import { getErrorMessage } from '@pong/utils/errors/get-error-message';
 import { userHasScopes } from '@/permissions.ee/check-access';
 
 import { AgentExecutionThreadRepository } from '../../repositories/agent-execution-thread.repository';
+import { AgentThreadGrantRepository } from '../../repositories/agent-thread-grant.repository';
 import type { FormattedTurnError } from '../../types/agent-turn-outcome';
 import type {
 	SystemAgentProvider,
@@ -12,6 +13,8 @@ import type {
 	SystemAgentTurnOptions,
 } from '../system-agent.types';
 import { SystemAgentRegistrationService } from '../system-agent-registration.service';
+import { EasycodeApprovalBridge } from './approval-bridge';
+import { EasycodeArtifactBridge } from './artifact-bridge';
 import {
 	EASYCODE_AGENT_ID,
 	EASYCODE_AGENT_NAME,
@@ -20,15 +23,37 @@ import {
 	resolveEasycodeModel,
 	resolveEasycodeWorkingDirectory,
 } from './easycode.constants';
+import { EasycodeDynamicToolset, type EasycodeDynamicTool } from './dynamic-tools';
 import { EasycodeRuntimeAgent } from './easycode-runtime-agent';
+import type { EasycodeApprovalDecision } from './easycode-supervisor.port';
 import { EasycodeSupervisorFactoryService } from './easycode-supervisor-factory.service';
+import { EasycodeThreadStateStore } from './thread-state';
+
+/** The pong tools that easyCode may call. Keep it small: each spec costs prompt tokens. */
+function createTools(input: { threadId: string; cwd: string }): EasycodeDynamicTool[] {
+	return [
+		{
+			name: 'pong_thread_info',
+			description:
+				'Return the pong thread id, the agent id and the working directory of this conversation. Read-only.',
+			inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+			handler: async () =>
+				JSON.stringify({
+					threadId: input.threadId,
+					agentId: EASYCODE_AGENT_ID,
+					cwd: input.cwd,
+				}),
+		},
+	];
+}
 
 /**
  * The easyCode runtime as a pong system agent.
  *
  * It reuses the `/agents/system` routes, the Agents queue, the execution
- * records, the checkpoints and the SSE channel. The provider only builds the
- * per-turn app-server supervisor and stores which runtime a thread uses.
+ * records, the checkpoints and the SSE channel. The provider builds the
+ * per-turn supervisor, the approval bridge, the artifact bridge and the dynamic
+ * toolset, and stores which runtime a thread uses.
  *
  * Opt-in: a module registers it only when `PONG_EASYCODE_RUNTIME=1`
  * (see `register-easycode-agent.ts`).
@@ -42,6 +67,7 @@ export class EasycodeAgentProvider implements SystemAgentProvider {
 	constructor(
 		private readonly threadRepository: AgentExecutionThreadRepository,
 		private readonly supervisorFactory: EasycodeSupervisorFactoryService,
+		private readonly grantsRepository: AgentThreadGrantRepository,
 	) {}
 
 	async authorize(user: User, projectId: string): Promise<boolean> {
@@ -52,18 +78,65 @@ export class EasycodeAgentProvider implements SystemAgentProvider {
 		return {};
 	}
 
+	/** A resume payload keeps its shape: the agent reads the approval id and decision. */
+	normalizeResumeData(resumeData: unknown): unknown {
+		return resumeData;
+	}
+
 	async prepareTurn(turn: SystemAgentTurn): Promise<SystemAgentTurnHandle> {
 		const threadId = turn.thread.id;
 		const existing = await this.threadRepository.findRuntimeBinding(threadId);
 		const cwd = resolveEasycodeWorkingDirectory();
 		const model = resolveEasycodeModel();
-		const supervisor = this.supervisorFactory.create({ threadId, cwd });
+		const emit = turn.emitHostEvent;
+
+		// The approval bridge and the supervisor form a cycle: the supervisor calls
+		// the bridge, and the bridge answers through the supervisor broker. The
+		// indirection breaks it without a cast or a null assertion.
+		let decideApproval: (approvalId: string, decision: EasycodeApprovalDecision) => boolean = () =>
+			false;
+		const approvalBridge = new EasycodeApprovalBridge({
+			threadId,
+			emit,
+			grants: {
+				load: async () => await this.grantsRepository.findKeys(threadId),
+				grant: async (grantKey) => {
+					await this.grantsRepository.grant(threadId, grantKey);
+				},
+			},
+			decide: (approvalId, decision) => decideApproval(approvalId, decision),
+		});
+		await approvalBridge.loadGrants();
+
+		const toolset = new EasycodeDynamicToolset({
+			threadId,
+			tools: createTools({ threadId, cwd }),
+			approver: { ask: async (request) => await approvalBridge.ask(request) },
+			emit,
+		});
+
+		const supervisor = this.supervisorFactory.create({
+			threadId,
+			cwd,
+			handlers: {
+				onApprovalRequest: (request) => approvalBridge.request(request),
+				onDynamicToolCall: async (call) => await toolset.handle(call),
+			},
+		});
+		decideApproval = (approvalId, decision) => supervisor.decideApproval(approvalId, decision);
+
+		const artifacts = new EasycodeArtifactBridge({ threadId, emit });
 		const agent = new EasycodeRuntimeAgent({
 			threadId,
 			cwd,
 			supervisor,
 			resumeThreadId: existing?.runtimeThreadId ?? null,
 			...(model !== undefined ? { model } : {}),
+			toolset,
+			artifactBridge: artifacts,
+			approvalBridge,
+			threadStateStore: EasycodeThreadStateStore.forHome(supervisor.easycodeHome),
+			emitHostEvent: emit,
 		});
 
 		let easycodeThreadId: string;
@@ -71,7 +144,6 @@ export class EasycodeAgentProvider implements SystemAgentProvider {
 			const prepared = await agent.prepare();
 			easycodeThreadId = prepared.easycodeThreadId;
 		} catch (error) {
-			// The supervisor may already hold a child process.
 			await agent.close();
 			throw error;
 		}
@@ -85,7 +157,7 @@ export class EasycodeAgentProvider implements SystemAgentProvider {
 				{},
 			);
 		} catch {
-			// Best effort. The turn already has its thread.
+			// Best effort.
 		}
 
 		const handle: SystemAgentTurnHandle = {

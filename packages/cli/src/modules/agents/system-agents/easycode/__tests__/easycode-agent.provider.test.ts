@@ -1,4 +1,7 @@
 import type { User } from '@pong/db';
+import { randomUUID } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { mock } from 'vitest-mock-extended';
 
 // The provider asks the permission layer for `project:read`. A bare mock user has
@@ -10,6 +13,7 @@ vi.mock('@/permissions.ee/check-access', () => ({
 import type { AgentExecutionThread } from '../../../entities/agent-execution-thread.entity';
 import type { AgentRepository } from '../../../repositories/agent.repository';
 import type { AgentExecutionThreadRepository } from '../../../repositories/agent-execution-thread.repository';
+import type { AgentThreadGrantRepository } from '../../../repositories/agent-thread-grant.repository';
 import { SystemAgentRegistrationService } from '../../system-agent-registration.service';
 import { SystemAgentRegistry } from '../../system-agent-registry';
 import type { SystemAgentProvider, SystemAgentTurn } from '../../system-agent.types';
@@ -25,7 +29,8 @@ import type {
 } from '../easycode-supervisor.port';
 
 class FakeSupervisor implements EasycodeSupervisorPort {
-	readonly easycodeHome = 'C:/fake-easycode-home';
+	// A unique home per fake, so a state file of one test cannot leak into another.
+	readonly easycodeHome = join(tmpdir(), `pong-easycode-fake-${randomUUID()}`);
 
 	shutDown = false;
 
@@ -56,6 +61,14 @@ class FakeSupervisor implements EasycodeSupervisorPort {
 
 	async shutdown(): Promise<void> {
 		this.shutDown = true;
+	}
+
+	decideApproval(_approvalId: string, _decision: string): boolean {
+		return false;
+	}
+
+	pendingApprovals(): [] {
+		return [];
 	}
 
 	onNotification(_listener: (notification: EasycodeNotification) => void): () => void {
@@ -98,11 +111,21 @@ function setup() {
 	const agentRepository = mock<AgentRepository>();
 	const registration = new SystemAgentRegistrationService(registry, agentRepository);
 	const threadRepository = mock<AgentExecutionThreadRepository>();
+	const grantsRepository = mock<AgentThreadGrantRepository>();
+	grantsRepository.findKeys.mockResolvedValue(new Set());
 	const supervisor = new FakeSupervisor();
 	const supervisorFactory = mock<EasycodeSupervisorFactoryService>();
 	supervisorFactory.create.mockReturnValue(supervisor);
-	const provider = new EasycodeAgentProvider(threadRepository, supervisorFactory);
-	return { registry, registration, threadRepository, supervisor, supervisorFactory, provider };
+	const provider = new EasycodeAgentProvider(threadRepository, supervisorFactory, grantsRepository);
+	return {
+		registry,
+		registration,
+		threadRepository,
+		grantsRepository,
+		supervisor,
+		supervisorFactory,
+		provider,
+	};
 }
 
 describe('registerEasycodeSystemAgent', () => {
@@ -134,10 +157,9 @@ describe('EasycodeAgentProvider', () => {
 
 		const handle = await provider.prepareTurn(createStartTurn());
 
-		expect(supervisorFactory.create).toHaveBeenCalledWith({
-			threadId: 'thread-1',
-			cwd: expect.any(String),
-		});
+		expect(supervisorFactory.create).toHaveBeenCalledWith(
+			expect.objectContaining({ threadId: 'thread-1', cwd: expect.any(String) }),
+		);
 		expect(handle.agent).toBeInstanceOf(EasycodeRuntimeAgent);
 		expect(handle.input).toBe('build a workflow');
 		expect(handle.toolRegistry?.size).toBe(0);

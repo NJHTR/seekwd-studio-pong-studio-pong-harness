@@ -1,5 +1,9 @@
 import { resolveDefaultExePath, AppServerSupervisor } from '@pong/easycode-runtime';
-import type { SupervisorLogger } from '@pong/easycode-runtime';
+import type {
+	ApprovalHostRequest,
+	DynamicToolCallParams,
+	SupervisorLogger,
+} from '@pong/easycode-runtime';
 import { Logger } from '@pong/backend-common';
 import { Service } from '@pong/di';
 import { UnexpectedError } from '@pong/errors';
@@ -10,8 +14,12 @@ import {
 	EASYCODE_HOME_ENV,
 } from './easycode.constants';
 import type {
+	EasycodeApprovalDecision,
+	EasycodeApprovalKind,
 	EasycodeInterruptResult,
 	EasycodeNotification,
+	EasycodePendingApproval,
+	EasycodeServerHandlers,
 	EasycodeStartTurnParams,
 	EasycodeSupervisorCreateOptions,
 	EasycodeSupervisorFactory,
@@ -23,7 +31,6 @@ import type {
 export class EasycodeBinaryUnavailableError extends UnexpectedError {
 	constructor(message: string) {
 		super(message);
-		this.name = 'EasycodeBinaryUnavailableError';
 	}
 }
 
@@ -37,9 +44,9 @@ export function resolveEasycodeBinaryPath(env: NodeJS.ProcessEnv = process.env):
 const DEFAULT_APP_SERVER_ARGS = ['app-server', '--listen', 'stdio://'];
 
 /**
- * Adapts `AppServerSupervisor` to the narrow port. The supervisor is the only
- * owner of the child process; this adapter only maps the calls of one turn and
- * the sandbox policy that ADR-01 fixes for the single-user desktop.
+ * Adapts `AppServerSupervisor` to the narrow port. The supervisor owns the
+ * child process, the approval broker and the dynamic tool dispatch; this
+ * adapter only maps the calls and payload types.
  */
 class SupervisorPortAdapter implements EasycodeSupervisorPort {
 	constructor(
@@ -63,7 +70,7 @@ class SupervisorPortAdapter implements EasycodeSupervisorPort {
 			approvalsReviewer: 'user',
 			sandbox: 'workspace-write',
 			developerInstructions: params.developerInstructions ?? null,
-			dynamicTools: [],
+			dynamicTools: params.dynamicTools ?? null,
 		});
 		return { threadId: response.thread.id };
 	}
@@ -90,7 +97,7 @@ class SupervisorPortAdapter implements EasycodeSupervisorPort {
 			sandboxPolicy: {
 				type: 'workspaceWrite',
 				writableRoots: [params.cwd],
-				// ADR-01: network access stays off until an approval bridge exists.
+				// ADR-01: network access stays off until the approval bridge covers it.
 				networkAccess: false,
 				excludeTmpdirEnvVar: false,
 				excludeSlashTmp: false,
@@ -121,6 +128,21 @@ class SupervisorPortAdapter implements EasycodeSupervisorPort {
 			listener({ method: notification.method, params: notification.params });
 		});
 	}
+
+	decideApproval(approvalId: string, decision: EasycodeApprovalDecision): boolean {
+		return this.supervisor.decideApproval(approvalId, decision);
+	}
+
+	pendingApprovals(): EasycodePendingApproval[] {
+		return this.supervisor.approvals.pendingApprovals().map((view) => ({
+			approvalId: view.approvalId,
+			kind: view.kind,
+			threadId: view.threadId,
+			turnId: view.turnId,
+			itemId: view.itemId,
+			deadlineAtMs: view.deadlineAtMs,
+		}));
+	}
 }
 
 function toSupervisorLogger(logger: Logger): SupervisorLogger {
@@ -144,16 +166,58 @@ export class EasycodeSupervisorFactoryService implements EasycodeSupervisorFacto
 				'The easyCode runtime is enabled but no binary is configured. Set PONG_EASYCODE_BIN to the easycode executable.',
 			);
 		}
+		const handlers: EasycodeServerHandlers = options.handlers ?? {};
 		const easycodeHome = process.env[EASYCODE_HOME_ENV];
 		const supervisor = new AppServerSupervisor({
 			exePath,
 			appServerArgs: options.appServerArgs ?? DEFAULT_APP_SERVER_ARGS,
 			cwd: options.cwd,
 			agentId: options.threadId,
-			events: {},
 			logger: toSupervisorLogger(this.logger),
+			events: {
+				onApprovalRequest: (request: ApprovalHostRequest) => {
+					handlers.onApprovalRequest?.({
+						approvalId: request.approvalId,
+						kind: toPortKind(request.kind),
+						threadId: request.threadId,
+						turnId: request.turnId,
+						itemId: request.itemId,
+						command: request.command,
+						reason: request.reason,
+					});
+					// The bridge answers later through `decideApproval`, so the
+					// supervisor keeps its broker entry pending.
+					return undefined;
+				},
+				onDynamicToolCall: async (call: DynamicToolCallParams) => {
+					const handler = handlers.onDynamicToolCall;
+					if (handler === undefined) {
+						return {
+							contentItems: [{ type: 'inputText', text: 'Dynamic tools are not wired.' }],
+							success: false,
+						};
+					}
+					const result = await handler({
+						threadId: call.threadId,
+						turnId: call.turnId,
+						callId: call.callId,
+						tool: call.tool,
+						arguments: call.arguments,
+					});
+					return {
+						contentItems: [{ type: 'inputText', text: result.text }],
+						success: result.success,
+					};
+				},
+			},
 			...(easycodeHome !== undefined && easycodeHome.trim() !== '' ? { easycodeHome } : {}),
 		});
 		return new SupervisorPortAdapter(supervisor, options.cwd);
 	}
+}
+
+function toPortKind(kind: string): EasycodeApprovalKind {
+	if (kind === 'commandExecution' || kind === 'fileChange' || kind === 'permissions') return kind;
+	if (kind === 'userInput') return 'userInput';
+	return 'legacy';
 }
