@@ -208,3 +208,14 @@ flowchart LR
 8. **S1-8** 周中评审：红队复核 PoC 结果（必须有人在周五前提出反对）
 
 Sprint 出口：M0 九条验收全绿，并形成 `docs/poc/m0-results.md` 与 go/no-go 决策。
+
+---
+
+## 11. M0 实际结果（2026-11-13，更新）
+
+- 真实链路、dynamic tool、interrupt/resume、30 min 长会话、故障注入 5/5、C-first 启动器、控制端点全部 PASS（见 `docs/poc/m0-results.md`、`m0-fault-injection.md`）。
+- 未通过/待办：
+  1. task-13（必修）：`workspaceWrite.networkAccess` 类型错误（blocker）+ 共享 home 并发初始化失败重试（major）。
+  2. task-14：A/B 样本不足，重测后再决定多 Agent 协议是否进入 M2。
+  3. 冷启动干净机未复测；M1 安装包预热方案（`docs/poc/m0-cold-start.md`：P0 安装 self-test -2.39 s；P1 预置 DB/缓存；P2 bundling 需 PoC）。
+- M1 启动条件：task-13 完成即可开始单 agent 产品化；task-14 与 M1 并行，不阻塞 M1。

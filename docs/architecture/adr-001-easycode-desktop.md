@@ -325,3 +325,26 @@ spawn easycode app-server --listen stdio://   （cwd = 工作区根）
 | M4 硬化交付 | 全部 | Windows 专项、崩溃恢复、毕业答辩演示脚本 |
 
 详细工作分解见 `docs/plan/development-plan.md`。
+
+---
+
+## 10. M0 结论（2026-11-13）
+
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| 真实 turn（读/改文件 + 5 次命令审批） | PASS | `docs/poc/m0-results.md`：19.7 s，审批往返 host 0–1 ms / 服务端 0–8 ms |
+| dynamic tool 回调 | PASS | `pong_echo` 真实 `item/tool/call`，host 往返 0 ms |
+| interrupt / resume / 30 min 长会话 | PASS | interrupt 618–782 ms；30 turns / 0 失败；WorkingSet 160.9–169.7 MB 无单调增长 |
+| 故障注入 5 场景 | PASS 5/5 | `docs/poc/m0-fault-injection.md`：读循环阻塞 30 s 后审批 +1 ms 恢复；120 s 超时 decline；重复 interrupt 5 s 兜底；resume 无 rollout 错误可读；4 进程 10 min 244/244 turns |
+| C-first 启动器 | PASS | 真实 pong：liveness 4.5 s → readiness 9.9 s → control +58 ms；202→退出 249 ms；WAL=0；残留 0 |
+| 控制端点 | PASS | 202/401/403 语义正确；WAL checkpoint 修复（修复前 160 KB 且增长） |
+| 冷启动 | 有条件 PASS | 模块加载 ~3.5 s + 静态资源 ~1.6 s；干净机首次可能 >120 s（杀软扫描），M1 必须安装预热 |
+
+### 10.1 M0 发现的两个必修项（已开任务）
+
+- **F2（blocker，task-13）**：`workspaceWrite.networkAccess` 类型与真实二进制不符（string vs boolean），导致 A/B 首轮 6/6 失败。M1 前修复 + 锁 schema。
+- **F1（major，task-13）**：共享 `EASYCODE_HOME` 并发首次初始化间歇失败（0/4、1/4、2/4），服务端不重试。supervisor 需退避重启 + 共享 home 首次初始化串行化（或 per-agent home）。
+
+### 10.2 多 Agent 协议决策
+
+A/B 首轮样本不足（A n=2、B n=1，方差主导，且沙箱不限制读导致 A 臂可访问 producer workspace）。**在 task-14（隔离 + 固定 artifact + ≥3 runs/arm）给出数据前，不冻结多 Agent 协议实现**。M1 可先做单 agent 产品化。
